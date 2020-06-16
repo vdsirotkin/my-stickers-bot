@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: my-stickers-bot
+
+bot:
+  webhook: false
+  token: ${BOT_TOKEN}
+  username: ${BOT_USERNAME}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
