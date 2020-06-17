@@ -55,9 +55,9 @@
             <artifactId>kotlinx-coroutines-reactor</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.kotlintelegrambot</groupId>
-            <artifactId>telegram</artifactId>
-            <version>5.0.1</version>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-spring-boot-starter</artifactId>
+            <version>4.9</version>
         </dependency>
         <dependency>
             <groupId>com.github.sokomishalov</groupId>
