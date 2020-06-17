@@ -15,4 +15,7 @@ abstract class HandlerFactory {
     @Lookup
     abstract fun animatedStickerHandler(): AnimatedStickerHandler
 
+    @Lookup
+    abstract fun unknownMessageHandler(): UnknownMessageHandler
+
 }

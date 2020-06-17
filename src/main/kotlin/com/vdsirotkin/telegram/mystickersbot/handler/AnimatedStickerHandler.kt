@@ -8,6 +8,7 @@ import com.vdsirotkin.telegram.mystickersbot.util.withTempFile
 import kotlinx.coroutines.reactor.mono
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.DefaultAbsSender
+import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
 import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
@@ -25,7 +26,8 @@ class AnimatedStickerHandler(
 
         val entity = dao.getUserEntity(chatId)
         if (entity.animatedPackCreated) {
-            withTempFile(bot.downloadFileAsync(sticker.fileId)) {
+            val file = bot.executeAsync(GetFile().setFileId(sticker.fileId))
+            withTempFile(bot.downloadFileAsync(file.filePath)) {
                 bot.execute(AddStickerToSet(chatId.toInt(), entity.animatedPackName, sticker.emoji!!).setTgsSticker(it))
             }
             bot.executeAsync(
@@ -34,7 +36,8 @@ class AnimatedStickerHandler(
                             .addInlineKeyboard("Sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
             )
         } else {
-            withTempFile(bot.downloadFileAsync(sticker.fileId)) {
+            val file = bot.executeAsync(GetFile().setFileId(sticker.fileId))
+            withTempFile(bot.downloadFileAsync(file.filePath)) {
                 bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @my_stckrs_bot", sticker.emoji!!).setTgsSticker(it))
             }
             dao.setCreatedStatus(chatId, animatedStickerCreated = true)

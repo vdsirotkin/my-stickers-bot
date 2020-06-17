@@ -6,6 +6,7 @@ bot:
   webhook: false
   token: ${BOT_TOKEN}
   username: ${BOT_USERNAME}
+  service-account-id: ${SERVICE_ACCOUNT_ID}
 
 management:
   endpoints:

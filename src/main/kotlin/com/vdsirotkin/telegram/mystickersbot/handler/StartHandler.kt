@@ -22,6 +22,7 @@ class StartHandler(
         return mono (Dispatchers.IO) {
             dao.saveUserPacks(update.message!!.chat.id, normalPackName, animatedPackName)
             bot.execute(SendMessage(update.message!!.chat.id, "Hello! Start sending me stickers, and i'll add them to your personal pack!"))
+            Unit
         }
     }
 

@@ -11,6 +11,7 @@ import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.DefaultAbsSender
+import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
 import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
@@ -43,7 +44,12 @@ class NormalStickerHandler(
         val sticker = update.message!!.sticker!!
         val chatId = update.message!!.chat.id
         withTempFile(preparePngFile(bot, sticker)) {
-            bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @my_stckrs_bot", sticker.emoji!!).setPngStickerFile(it))
+            bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @my_stckrs_bot", sticker.emoji!!).setPngStickerFile(it)
+                    .apply {
+                        containsMasks = sticker.maskPosition != null
+                        maskPosition = sticker.maskPosition
+                    }
+            )
         }
         dao.setCreatedStatus(chatId, normalStickerCreated = true)
         bot.executeAsync(SendMessage(chatId,
@@ -70,7 +76,8 @@ class NormalStickerHandler(
                                        sticker: Sticker): File {
         val file = withContext(Dispatchers.IO) { Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".webp").toFile() }
         return withTempFile(file) { webpFile ->
-            bot.downloadFile(sticker.fileId, webpFile)
+            val stickerFile = bot.executeAsync(GetFile().setFileId(sticker.fileId))
+            bot.downloadFile(stickerFile, webpFile)
             val pngFile = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".png").toFile()
             WebpIO.create().toNormalImage(webpFile, pngFile)
             webpFile.delete()
