@@ -25,7 +25,10 @@ class AnimatedStickerHandler(
         val entity = dao.getUserEntity(chatId)
         if (entity.animatedPackCreated) {
             withTempFile(getStickerFile(bot, sticker)) {
-                bot.execute(AddStickerToSet(chatId.toInt(), entity.animatedPackName, sticker.emoji!!).setTgsSticker(it))
+                bot.execute(AddStickerToSet(chatId.toInt(), entity.animatedPackName, sticker.emoji!!)
+                        .setTgsSticker(it)
+                        .setMaskPosition(sticker.maskPosition)
+                )
             }
             bot.executeAsync(
                     SendMessage(chatId, "Successfully added :)")
@@ -34,7 +37,10 @@ class AnimatedStickerHandler(
             )
         } else {
             withTempFile(getStickerFile(bot, sticker)) {
-                bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @my_stckrs_bot", sticker.emoji!!).setTgsSticker(it))
+                bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @my_stckrs_bot", sticker.emoji!!)
+                        .setTgsSticker(it)
+                        .apply { containsMasks = sticker.maskPosition != null; maskPosition = sticker.maskPosition }
+                )
             }
             dao.setCreatedStatus(chatId, animatedStickerCreated = true)
             bot.executeAsync(
