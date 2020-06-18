@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.vdsirotkin.telegram</groupId>
     <artifactId>my-stickers-bot</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <name>my-stickers-bot</name>
     <description>My stickers bot</description>
 
@@ -53,6 +53,10 @@
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-reactor</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-slf4j</artifactId>
         </dependency>
         <dependency>
             <groupId>org.telegram</groupId>

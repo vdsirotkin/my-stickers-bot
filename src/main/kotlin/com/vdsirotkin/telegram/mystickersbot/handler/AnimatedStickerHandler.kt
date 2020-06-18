@@ -1,11 +1,7 @@
 package com.vdsirotkin.telegram.mystickersbot.handler
 
 import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
-import com.vdsirotkin.telegram.mystickersbot.util.addInlineKeyboard
-import com.vdsirotkin.telegram.mystickersbot.util.downloadFileAsync
-import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
-import com.vdsirotkin.telegram.mystickersbot.util.withTempFile
-import kotlinx.coroutines.reactor.mono
+import com.vdsirotkin.telegram.mystickersbot.util.*
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.DefaultAbsSender
 import org.telegram.telegrambots.meta.api.methods.GetFile
@@ -22,7 +18,7 @@ class AnimatedStickerHandler(
         private val dao: StickerDAO
 ) : BaseHandler {
 
-    override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> = mono {
+    override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> = monoWithMdc {
         val chatId = update.message!!.chat.id
         val sticker = update.message!!.sticker!!
 

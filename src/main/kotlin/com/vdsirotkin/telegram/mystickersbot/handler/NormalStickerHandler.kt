@@ -4,10 +4,10 @@ import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.dao.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.util.addInlineKeyboard
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
+import com.vdsirotkin.telegram.mystickersbot.util.monoWithMdc
 import com.vdsirotkin.telegram.mystickersbot.util.withTempFile
 import io.github.biezhi.webp.WebpIO
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.DefaultAbsSender
@@ -28,7 +28,7 @@ class NormalStickerHandler(
 
     override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> {
         val chatId = update.message!!.chat.id
-        return mono {
+        return monoWithMdc {
             val entity = dao.getUserEntity(chatId)
             if (entity.normalPackCreated) {
                 addStickerToPack(bot, update, entity)

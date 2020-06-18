@@ -1,8 +1,12 @@
 package com.vdsirotkin.telegram.mystickersbot.util
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.reactor.ReactorContext
+import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import org.slf4j.MDC
 import org.telegram.telegrambots.bots.DefaultAbsSender
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
@@ -11,10 +15,16 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
 import org.telegram.telegrambots.meta.updateshandlers.DownloadFileCallback
 import org.telegram.telegrambots.meta.updateshandlers.SentCallback
+import reactor.core.publisher.Mono
+import reactor.util.context.Context
 import java.io.File
 import java.io.Serializable
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.resume
+
+const val MDC_CALL_ID = "callId"
+const val MDC_USER_ID = "userId"
 
 fun SendMessage.addInlineKeyboard(title: String, url: String): SendMessage {
     this.replyMarkup = InlineKeyboardMarkup(listOf(listOf(InlineKeyboardButton(title).setUrl(url))))
@@ -59,4 +69,24 @@ suspend fun DefaultAbsSender.downloadFileAsync(filePath: String): File {
             }
         })
     }
+}
+
+fun <T> monoWithMdc(context: CoroutineContext = EmptyCoroutineContext,
+                block: suspend CoroutineScope.() -> T?): Mono<T> {
+    return mono(context) {
+        coroutineContext.resolveMdc()
+        val result = block()
+        MDC.clear()
+        result
+    }
+}
+
+fun Context.resolveMdc() {
+    MDC.put(MDC_CALL_ID, this[MDC_CALL_ID])
+    MDC.put(MDC_USER_ID, this[MDC_USER_ID])
+}
+
+@Suppress("EXPERIMENTAL_API_USAGE")
+fun CoroutineContext.resolveMdc() {
+    this[ReactorContext]?.context?.resolveMdc()
 }
