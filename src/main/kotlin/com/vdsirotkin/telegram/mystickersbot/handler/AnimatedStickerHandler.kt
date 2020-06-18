@@ -33,7 +33,7 @@ class AnimatedStickerHandler(
             bot.executeAsync(
                     SendMessage(chatId, "Successfully added :)")
                             .setReplyToMessageId(update.message!!.messageId)
-                            .addInlineKeyboard("Your regular sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
+                            .addInlineKeyboard("Your animated sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
             )
         } else {
             withTempFile(getStickerFile(bot, sticker)) {
