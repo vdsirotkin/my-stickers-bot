@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.vdsirotkin.telegram</groupId>
     <artifactId>my-stickers-bot</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>my-stickers-bot</name>
     <description>My stickers bot</description>
 
@@ -142,13 +142,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <configuration>
-                    <offline>true</offline>
-                </configuration>
             </plugin>
         </plugins>
     </build>
