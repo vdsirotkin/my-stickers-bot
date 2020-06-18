@@ -41,7 +41,7 @@ class MyStickersBot(
                     }
                 }.subscriberContext {
                     it.put(MDC_CALL_ID, UUID.randomUUID().toString())
-                    it.put(MDC_USER_ID, update.message.chatId)
+                            .put(MDC_USER_ID, update.message.chatId.toString())
                 }.subscribe()
     }
 
