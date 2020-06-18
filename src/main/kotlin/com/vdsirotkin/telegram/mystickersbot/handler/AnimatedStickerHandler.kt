@@ -13,7 +13,9 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
 import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
 import org.telegram.telegrambots.meta.api.objects.Update
+import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import reactor.core.publisher.Mono
+import java.io.File
 
 @Service
 class AnimatedStickerHandler(
@@ -26,28 +28,31 @@ class AnimatedStickerHandler(
 
         val entity = dao.getUserEntity(chatId)
         if (entity.animatedPackCreated) {
-            val file = bot.executeAsync(GetFile().setFileId(sticker.fileId))
-            withTempFile(bot.downloadFileAsync(file.filePath)) {
+            withTempFile(getStickerFile(bot, sticker)) {
                 bot.execute(AddStickerToSet(chatId.toInt(), entity.animatedPackName, sticker.emoji!!).setTgsSticker(it))
             }
             bot.executeAsync(
                     SendMessage(chatId, "Successfully added :)")
                             .setReplyToMessageId(update.message!!.messageId)
-                            .addInlineKeyboard("Sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
+                            .addInlineKeyboard("Your regular sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
             )
         } else {
-            val file = bot.executeAsync(GetFile().setFileId(sticker.fileId))
-            withTempFile(bot.downloadFileAsync(file.filePath)) {
+            withTempFile(getStickerFile(bot, sticker)) {
                 bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @my_stckrs_bot", sticker.emoji!!).setTgsSticker(it))
             }
             dao.setCreatedStatus(chatId, animatedStickerCreated = true)
             bot.executeAsync(
                     SendMessage(chatId, "Successfully created sticker pack and added this sticker to it :)")
                             .setReplyToMessageId(update.message!!.messageId)
-                            .addInlineKeyboard("Sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
+                            .addInlineKeyboard("Your animated sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
             )
         }
-        Unit
+    }.thenReturn(Unit)
+
+    private suspend fun getStickerFile(bot: DefaultAbsSender,
+                                       sticker: Sticker): File {
+        val file = bot.executeAsync(GetFile().setFileId(sticker.fileId))
+        return bot.downloadFileAsync(file.filePath)
     }
 
 }

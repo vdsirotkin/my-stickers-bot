@@ -30,7 +30,7 @@ suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers
 }
 
 suspend fun <T : Serializable> DefaultAbsSender.executeAsync(method: BotApiMethod<T>): T {
-    return suspendCancellableCoroutine<T> { cont ->
+    return suspendCancellableCoroutine { cont ->
         this.executeAsync(method, object : SentCallback<T> {
             override fun onResult(method: BotApiMethod<T>?, p1: T) {
                 cont.resume(p1)
