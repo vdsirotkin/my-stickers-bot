@@ -1,5 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.handler
 
+import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.dao.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.util.addInlineKeyboard
@@ -23,7 +24,8 @@ import java.nio.file.Files
 
 @Service
 class NormalStickerHandler(
-        private val dao: StickerDAO
+        private val dao: StickerDAO,
+        private val props: BotConfigProps
 ) : BaseHandler {
 
     override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> {
@@ -44,7 +46,7 @@ class NormalStickerHandler(
         val sticker = update.message!!.sticker!!
         val chatId = update.message!!.chat.id
         withTempFile(preparePngFile(bot, sticker)) {
-            bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @my_stckrs_bot", sticker.emoji!!).setPngStickerFile(it)
+            bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker.emoji!!).setPngStickerFile(it)
                     .apply {
                         containsMasks = sticker.maskPosition != null
                         maskPosition = sticker.maskPosition

@@ -1,5 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.handler
 
+import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.util.*
 import org.springframework.stereotype.Service
@@ -15,7 +16,8 @@ import java.io.File
 
 @Service
 class AnimatedStickerHandler(
-        private val dao: StickerDAO
+        private val dao: StickerDAO,
+        private val props: BotConfigProps
 ) : BaseHandler {
 
     override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> = monoWithMdc {
@@ -37,7 +39,7 @@ class AnimatedStickerHandler(
             )
         } else {
             withTempFile(getStickerFile(bot, sticker)) {
-                bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @my_stckrs_bot", sticker.emoji!!)
+                bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji!!)
                         .setTgsSticker(it)
                         .apply { containsMasks = sticker.maskPosition != null; maskPosition = sticker.maskPosition }
                 )
