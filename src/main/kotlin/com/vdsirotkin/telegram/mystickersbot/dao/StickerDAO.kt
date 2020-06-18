@@ -2,6 +2,7 @@ package com.vdsirotkin.telegram.mystickersbot.dao
 
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.findById
+import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Service
 import ru.sokomishalov.commons.core.reactor.await
 import ru.sokomishalov.commons.core.reactor.awaitStrict
@@ -37,6 +38,10 @@ class StickerDAO(
                 }
                 .flatMap { template.save(it) }
                 .awaitUnit()
+    }
+
+    suspend fun countUsers(): Int {
+        return template.count(Query(), UserEntity::class.java).await()?.toInt() ?: 0
     }
 
 }
