@@ -2,3 +2,5 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI}
+server:
+  port: ${PORT}
