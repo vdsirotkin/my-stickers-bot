@@ -82,7 +82,7 @@ class NormalStickerHandler(
             bot.downloadFile(stickerFile, webpFile)
             val pngFile = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".png").toFile()
             WebpIO.create().toNormalImage(webpFile, pngFile)
-            webpFile.delete()
+//            webpFile.delete()
             pngFile
         }
     }

@@ -34,7 +34,7 @@ fun SendMessage.addInlineKeyboard(title: String, url: String): SendMessage {
 suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers.IO, block: suspend (File) -> T): T {
      return withContext(context) {
         val result = block(file)
-        file.delete()
+//        file.delete()
         result
     }
 }

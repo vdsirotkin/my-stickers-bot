@@ -15,6 +15,7 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
 import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
 import java.util.*
@@ -35,7 +36,12 @@ class MyStickersBot(
                 .doOnEach {
                     if (it.isOnError) {
                         it.context.resolveMdc()
-                        logger.error("Error occurred, message: ${it.throwable!!.message}", it.throwable)
+                        val t = it.throwable
+                        if (t is TelegramApiRequestException) {
+                            logger.error("Telegram api error: ${t.apiResponse}", t)
+                        } else {
+                            logger.error("Error occurred, message: ${t!!.message}", t)
+                        }
                         sendErrorMessagesAsync(update.message.chatId, MDC.get(MDC_CALL_ID))
                         MDC.clear()
                     }
