@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import reactor.core.publisher.Mono
+import ru.sokomishalov.commons.core.log.Loggable
 import java.io.File
 
 @Service
@@ -23,10 +24,12 @@ class AnimatedStickerHandler(
     override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> = monoWithMdc {
         val chatId = update.message!!.chat.id
         val sticker = update.message!!.sticker!!
+        logger.info(sticker.toString())
 
         val entity = dao.getUserEntity(chatId)
         if (entity.animatedPackCreated) {
             withTempFile(getStickerFile(bot, sticker)) {
+                logger.info(it.absolutePath)
                 bot.execute(AddStickerToSet(chatId.toInt(), entity.animatedPackName, sticker.emoji!!)
                         .setTgsSticker(it)
                         .setMaskPosition(sticker.maskPosition)
@@ -39,6 +42,7 @@ class AnimatedStickerHandler(
             )
         } else {
             withTempFile(getStickerFile(bot, sticker)) {
+                logger.info(it.absolutePath)
                 bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji!!)
                         .setTgsSticker(it)
                         .apply { containsMasks = sticker.maskPosition != null; maskPosition = sticker.maskPosition }
@@ -56,7 +60,10 @@ class AnimatedStickerHandler(
     private suspend fun getStickerFile(bot: DefaultAbsSender,
                                        sticker: Sticker): File {
         val file = bot.executeAsync(GetFile().setFileId(sticker.fileId))
+        logger.info(file.toString())
         return bot.downloadFileAsync(file.filePath)
     }
+
+    companion object : Loggable
 
 }

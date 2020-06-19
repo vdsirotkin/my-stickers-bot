@@ -96,7 +96,7 @@ class NormalStickerHandler(
     private fun reducePngSize(webpFile: File, pngFilePath: Path, width: Int, height: Int) {
         val newWidth = (width * 0.95).roundToInt()
         val newHeight = (height * 0.95).roundToInt()
-        WebpIO.create().toNormalImage(webpFile, pngFilePath.toFile(), "-scale ${newWidth} ${newHeight}")
+        WebpIO.create().toNormalImage(webpFile, pngFilePath.toFile(), "-scale $newWidth $newHeight")
         if ((Files.size(pngFilePath) / 1024) > 500) {
             reducePngSize(webpFile, pngFilePath, newWidth, newHeight)
         }
