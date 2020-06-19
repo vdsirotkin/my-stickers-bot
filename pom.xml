@@ -18,6 +18,10 @@
         <java.version>1.8</java.version>
     </properties>
 
+    <modules>
+        <module>webp-io</module>
+    </modules>
+
     <repositories>
         <repository>
             <id>jitpack.io</id>
@@ -71,7 +75,7 @@
         <dependency>
             <groupId>io.github.biezhi</groupId>
             <artifactId>webp-io</artifactId>
-            <version>0.0.5</version>
+            <version>0.0.6</version>
         </dependency>
         <dependency>
             <groupId>net.logstash.logback</groupId>

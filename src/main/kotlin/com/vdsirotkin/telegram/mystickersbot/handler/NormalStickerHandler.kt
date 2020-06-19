@@ -21,6 +21,8 @@ import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import reactor.core.publisher.Mono
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.math.roundToInt
 
 @Service
 class NormalStickerHandler(
@@ -80,11 +82,23 @@ class NormalStickerHandler(
         return withTempFile(file) { webpFile ->
             val stickerFile = bot.executeAsync(GetFile().setFileId(sticker.fileId))
             bot.downloadFile(stickerFile, webpFile)
-            val pngFile = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".png").toFile()
+            val pngFilePath = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".png")
+            val pngFile = pngFilePath.toFile()
             WebpIO.create().toNormalImage(webpFile, pngFile)
+            if ((Files.size(pngFilePath) / 1024) > 500) {
+                reducePngSize(webpFile, pngFilePath, sticker.width, sticker.height)
+            }
             webpFile.delete()
             pngFile
         }
     }
 
+    private fun reducePngSize(webpFile: File, pngFilePath: Path, width: Int, height: Int) {
+        val newWidth = (width * 0.95).roundToInt()
+        val newHeight = (height * 0.95).roundToInt()
+        WebpIO.create().toNormalImage(webpFile, pngFilePath.toFile(), "-scale ${newWidth} ${newHeight}")
+        if ((Files.size(pngFilePath) / 1024) > 500) {
+            reducePngSize(webpFile, pngFilePath, newWidth, newHeight)
+        }
+    }
 }
