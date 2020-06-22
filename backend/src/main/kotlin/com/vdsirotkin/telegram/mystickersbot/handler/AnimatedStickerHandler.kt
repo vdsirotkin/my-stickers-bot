@@ -33,7 +33,6 @@ class AnimatedStickerHandler(
         }
         if (entity.animatedPackCreated) {
             withTempFile(getStickerFile(bot, sticker)) {
-                logger.info(it.absolutePath)
                 bot.execute(AddStickerToSet(chatId.toInt(), entity.animatedPackName, sticker.emoji!!)
                         .setTgsSticker(it)
                         .setMaskPosition(sticker.maskPosition)
@@ -46,7 +45,6 @@ class AnimatedStickerHandler(
             )
         } else {
             withTempFile(getStickerFile(bot, sticker)) {
-                logger.info(it.absolutePath)
                 bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji!!)
                         .setTgsSticker(it)
                         .apply { containsMasks = sticker.maskPosition != null; maskPosition = sticker.maskPosition }
