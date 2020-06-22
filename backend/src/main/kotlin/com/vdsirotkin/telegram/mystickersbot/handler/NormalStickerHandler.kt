@@ -19,10 +19,13 @@ import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import reactor.core.publisher.Mono
+import ru.sokomishalov.commons.core.log.Loggable
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.math.roundToInt
+import java.util.stream.Collectors
 
 @Service
 class NormalStickerHandler(
@@ -48,6 +51,9 @@ class NormalStickerHandler(
         val sticker = update.message!!.sticker!!
         val chatId = update.message!!.chat.id
         withTempFile(preparePngFile(bot, sticker)) {
+            if (Files.size(it.toPath()) / 1024 > 510) {
+                bot.executeAsync(SendMessage(chatId, "Sorry, can't upload your sticker. Please try another one."))
+            }
             bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker.emoji!!).setPngStickerFile(it)
                     .apply {
                         containsMasks = sticker.maskPosition != null
@@ -68,6 +74,9 @@ class NormalStickerHandler(
         val sticker = update.message!!.sticker!!
         val chatId = update.message!!.chat.id
         withTempFile(preparePngFile(bot, sticker)) {
+            if (Files.size(it.toPath()) / 1024 > 510) {
+                bot.executeAsync(SendMessage(chatId, "Sorry, can't upload your sticker. Please try another one."))
+            }
             bot.execute(AddStickerToSet(chatId.toInt(), entity.normalPackName, sticker.emoji!!).setPngSticker(it))
         }
         bot.executeAsync(SendMessage(chatId, "This sticker added!")
@@ -86,19 +95,23 @@ class NormalStickerHandler(
             val pngFile = pngFilePath.toFile()
             WebpIO.create().toNormalImage(webpFile, pngFile)
             if ((Files.size(pngFilePath) / 1024) > 500) {
-                reducePngSize(webpFile, pngFilePath, sticker.width, sticker.height)
+                reducePngSize(webpFile, pngFilePath)
             }
             webpFile.delete()
             pngFile
         }
     }
 
-    private fun reducePngSize(webpFile: File, pngFilePath: Path, width: Int, height: Int) {
-        val newWidth = (width * 0.95).roundToInt()
-        val newHeight = (height * 0.95).roundToInt()
-        WebpIO.create().toNormalImage(webpFile, pngFilePath.toFile(), "-scale $newWidth $newHeight")
-        if ((Files.size(pngFilePath) / 1024) > 500) {
-            reducePngSize(webpFile, pngFilePath, newWidth, newHeight)
-        }
+    private fun reducePngSize(webpFile: File, pngFilePath: Path) {
+        val runtime = Runtime.getRuntime()
+        var inputStream = runtime.exec("ffmpeg -y -i ${webpFile.absolutePath} ${pngFilePath.toFile().absolutePath}").inputStream
+        var reader = BufferedReader(InputStreamReader(inputStream))
+        reader.lines().collect(Collectors.joining("\n")).also { logDebug(it) }
+
+        inputStream = runtime.exec("optipng ${pngFilePath.toFile().absolutePath}").inputStream
+        reader = BufferedReader(InputStreamReader(inputStream))
+        reader.lines().collect(Collectors.joining("\n")).also { logDebug(it) }
     }
+
+    companion object : Loggable
 }
