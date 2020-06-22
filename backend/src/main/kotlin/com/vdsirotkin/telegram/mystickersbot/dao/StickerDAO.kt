@@ -2,6 +2,7 @@ package com.vdsirotkin.telegram.mystickersbot.dao
 
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.findById
+import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Service
 import ru.sokomishalov.commons.core.reactor.await
@@ -12,6 +13,8 @@ import ru.sokomishalov.commons.core.reactor.awaitUnit
 class StickerDAO(
         private val template: ReactiveMongoTemplate
 ) {
+
+    suspend fun userRegistered(userId: Long): Boolean = template.exists(Query.query(Criteria.where("_id").`is`(userId.toString())), UserEntity::class.java).awaitStrict()
 
     suspend fun saveUserPacks(userId: Long, normalStickerName: String, animatedStickerName: String) {
         return template.save(UserEntity(userId.toString(), normalStickerName, animatedStickerName))
