@@ -2,14 +2,15 @@ package com.vdsirotkin.telegram.mystickersbot.bot
 
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.HandlerFactory
-import com.vdsirotkin.telegram.mystickersbot.util.*
-import kotlinx.coroutines.Dispatchers
+import com.vdsirotkin.telegram.mystickersbot.util.MDC_CALL_ID
+import com.vdsirotkin.telegram.mystickersbot.util.MDC_USER_ID
+import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
+import com.vdsirotkin.telegram.mystickersbot.util.resolveMdc
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.slf4j.MDCContext
 import org.slf4j.MDC
 import org.springframework.stereotype.Service
-import org.telegram.telegrambots.bots.DefaultAbsSender
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
@@ -17,10 +18,7 @@ import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
 import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.util.*
-import java.util.stream.Collectors
 
 @Service
 class MyStickersBot(
@@ -30,7 +28,6 @@ class MyStickersBot(
     override fun onUpdateReceived(update: Update) {
         val handler = when {
             update.message.text == "/start" -> handlerFactory.startHandler()
-            update.message.text == "/test" -> test()
             update.message.hasSticker() -> processSticker(update.message.sticker)
             else -> handlerFactory.unknownMessageHandler()
         }
@@ -52,23 +49,6 @@ class MyStickersBot(
                     it.put(MDC_CALL_ID, UUID.randomUUID().toString())
                             .put(MDC_USER_ID, update.message.chatId.toString())
                 }.subscribe()
-    }
-
-    private fun test(): BaseHandler {
-        return object : BaseHandler {
-            override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> {
-                return monoWithMdc(Dispatchers.IO) {
-                    var inputStream = Runtime.getRuntime().exec("ffmpeg -version").inputStream
-                    var reader = BufferedReader(InputStreamReader(inputStream))
-                    reader.lines().collect(Collectors.joining("\n")).also { logInfo(it) }
-
-                    inputStream = Runtime.getRuntime().exec("optipng --version").inputStream
-                    reader = BufferedReader(InputStreamReader(inputStream))
-                    reader.lines().collect(Collectors.joining("\n")).also { logInfo(it) }
-                }.thenReturn(Unit)
-            }
-
-        }
     }
 
     private fun processSticker(sticker: Sticker): BaseHandler {

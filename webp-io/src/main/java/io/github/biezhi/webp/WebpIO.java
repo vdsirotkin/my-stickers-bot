@@ -1,5 +1,8 @@
 package io.github.biezhi.webp;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.util.Objects;
 
@@ -10,6 +13,8 @@ import java.util.Objects;
  * @date 2017/10/2
  */
 public class WebpIO {
+
+    private static final Logger log = LoggerFactory.getLogger(WebpIO.class);
 
     /**
      * cwebp/dwebp/gif2webp
@@ -124,7 +129,7 @@ public class WebpIO {
      * @return
      */
     private String executeCommand(String command) {
-        System.out.println("Execute: " + command);
+        log.debug("Execute: " + command);
 
         StringBuilder output = new StringBuilder();
         Process       p;
@@ -140,7 +145,7 @@ public class WebpIO {
             throw new WebpIOException(e);
         }
         if (!"".equals(output.toString())) {
-            System.out.println("Output: " + output);
+            log.debug("Output: " + output);
         }
         return "";
     }

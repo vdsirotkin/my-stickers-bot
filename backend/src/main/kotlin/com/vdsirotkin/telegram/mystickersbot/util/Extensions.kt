@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.reactor.mono
+import kotlinx.coroutines.slf4j.MDCContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.slf4j.MDC
@@ -32,9 +33,14 @@ fun SendMessage.addInlineKeyboard(title: String, url: String): SendMessage {
 }
 
 suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers.IO, block: suspend (File) -> T): T {
-     return withContext(context) {
-        val result = block(file)
-        file.delete()
+    return withContext(context) {
+        val result = try {
+            block(file)
+        } catch (e: Exception) {
+            throw e
+        } finally {
+            file.delete()
+        }
         result
     }
 }
@@ -72,12 +78,12 @@ suspend fun DefaultAbsSender.downloadFileAsync(filePath: String): File {
 }
 
 fun <T> monoWithMdc(context: CoroutineContext = EmptyCoroutineContext,
-                block: suspend CoroutineScope.() -> T?): Mono<T> {
+                    block: suspend CoroutineScope.() -> T?): Mono<T> {
     return mono(context) {
         coroutineContext.resolveMdc()
-        val result = block()
-        MDC.clear()
-        result
+        withContext(MDCContext()) {
+            block()
+        }
     }
 }
 
