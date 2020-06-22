@@ -10,5 +10,12 @@ data class UserEntity(
         val normalPackName: String,
         val animatedPackName: String,
         var normalPackCreated: Boolean = false,
-        var animatedPackCreated: Boolean = false
-)
+        var animatedPackCreated: Boolean = false,
+        val normalPackSet: MutableSet<StickerInfo> = mutableSetOf(),
+        val animatedPackSet: MutableSet<StickerInfo> = mutableSetOf()
+) {
+        data class StickerInfo(
+                val fileId: String,
+                val filePath: String
+        )
+}

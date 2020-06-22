@@ -36,14 +36,19 @@ class NormalStickerHandler(
         return monoWithMdc {
             val entity = dao.getUserEntity(chatId)
             val messageId = update.message!!.messageId
+            val sticker = update.message!!.sticker!!
+            if (dao.stickerExists(chatId, sticker.fileUniqueId, false)) {
+                bot.executeAsync(SendMessage(chatId, "This sticker is already added! Please try another one.").setReplyToMessageId(update.message!!.messageId))
+                return@monoWithMdc
+            }
             try {
-                val sticker = update.message!!.sticker!!
                 logDebug(sticker.toString())
                 if (entity.normalPackCreated) {
                     addStickerToPack(bot, messageId, chatId, sticker, entity)
                 } else {
                     createNewPack(bot, messageId, chatId, sticker, entity)
                 }
+                dao.saveSticker(chatId, sticker, false)
             } catch (e: PngNotCreatedException) {
                 logger.warn("Can't create png from this sticker")
                 bot.executeAsync(SendMessage(chatId, "Sorry, this sticker can't be processed. Please try another one.").setReplyToMessageId(messageId))

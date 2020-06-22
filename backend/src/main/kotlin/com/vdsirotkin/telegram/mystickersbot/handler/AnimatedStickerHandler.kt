@@ -27,6 +27,10 @@ class AnimatedStickerHandler(
         logger.info(sticker.toString())
 
         val entity = dao.getUserEntity(chatId)
+        if (dao.stickerExists(chatId, sticker.fileUniqueId, true)) {
+            bot.executeAsync(SendMessage(chatId, "This sticker is already added! Please try another one.").setReplyToMessageId(update.message!!.messageId))
+            return@monoWithMdc
+        }
         if (entity.animatedPackCreated) {
             withTempFile(getStickerFile(bot, sticker)) {
                 logger.info(it.absolutePath)
@@ -55,6 +59,7 @@ class AnimatedStickerHandler(
                             .addInlineKeyboard("Your animated sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
             )
         }
+        dao.saveSticker(chatId, sticker, true)
     }.thenReturn(Unit)
 
     private suspend fun getStickerFile(bot: DefaultAbsSender,

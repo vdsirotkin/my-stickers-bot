@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.findById
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Service
+import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import ru.sokomishalov.commons.core.reactor.await
 import ru.sokomishalov.commons.core.reactor.awaitStrict
 import ru.sokomishalov.commons.core.reactor.awaitUnit
@@ -13,6 +14,12 @@ import ru.sokomishalov.commons.core.reactor.awaitUnit
 class StickerDAO(
         private val template: ReactiveMongoTemplate
 ) {
+
+    suspend fun stickerExists(userId: Long, stickerId: String, isAnimated: Boolean): Boolean {
+        return template.findById(userId.toString(), UserEntity::class.java).awaitStrict().let {
+            if (isAnimated) it.animatedPackSet else it.normalPackSet
+        }.firstOrNull { it.fileId == stickerId }?.let { true } ?: false
+    }
 
     suspend fun userRegistered(userId: Long): Boolean = template.exists(Query.query(Criteria.where("_id").`is`(userId.toString())), UserEntity::class.java).awaitStrict()
 
@@ -45,6 +52,16 @@ class StickerDAO(
 
     suspend fun countUsers(): Int {
         return template.count(Query(), UserEntity::class.java).await()?.toInt() ?: 0
+    }
+
+    suspend fun saveSticker(chatId: Long, sticker: Sticker, isAnimated: Boolean) {
+        return template.findById(chatId.toString(), UserEntity::class.java)
+                .doOnNext {
+                    val set = if(isAnimated) it.animatedPackSet else it.normalPackSet
+                    set.add(UserEntity.StickerInfo(sticker.fileUniqueId, sticker.fileId))
+                }
+                .flatMap { template.save(it) }
+                .awaitUnit()
     }
 
 }
