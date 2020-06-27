@@ -36,11 +36,11 @@ class MyStickersBot(
                 .doOnEach {
                     if (it.isOnError) {
                         it.context.resolveMdc()
-                        val t = it.throwable
+                        val t = it.throwable!!
                         if (t is TelegramApiRequestException) {
-                            logger.error("Telegram api error: ${t.apiResponse}", t)
+                            logger.error("Telegram api error: ${t.apiResponse}, code: ${t.errorCode}", t)
                         } else {
-                            logger.error("Error occurred, message: ${t!!.message}", t)
+                            logger.error("Error occurred, message: ${t.message}", t)
                         }
                         sendErrorMessagesAsync(update.message.chatId, MDC.get(MDC_CALL_ID))
                         MDC.clear()

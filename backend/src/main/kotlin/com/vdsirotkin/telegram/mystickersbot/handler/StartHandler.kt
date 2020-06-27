@@ -2,7 +2,7 @@ package com.vdsirotkin.telegram.mystickersbot.handler
 
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
-import com.vdsirotkin.telegram.mystickersbot.util.monoWithMdc
+import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.DefaultAbsSender
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
@@ -20,7 +20,7 @@ class StartHandler(
         val chatId = update.message!!.chat.id
         val normalPackName = "def_stckr_${chatId}_by_${botConfigProps.username}"
         val animatedPackName = "anim_stckr_${chatId}_by_${botConfigProps.username}"
-        return monoWithMdc {
+        return mdcMono {
             if (!dao.userRegistered(chatId)) {
                 dao.saveUserPacks(chatId, normalPackName, animatedPackName)
                 logger.info("New user joined")

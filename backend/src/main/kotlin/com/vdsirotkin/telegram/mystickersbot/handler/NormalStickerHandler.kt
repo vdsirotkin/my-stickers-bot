@@ -7,7 +7,7 @@ import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
 import com.vdsirotkin.telegram.mystickersbot.service.PngService
 import com.vdsirotkin.telegram.mystickersbot.util.addInlineKeyboard
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
-import com.vdsirotkin.telegram.mystickersbot.util.monoWithMdc
+import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
 import com.vdsirotkin.telegram.mystickersbot.util.withTempFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,13 +33,13 @@ class NormalStickerHandler(
 
     override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> {
         val chatId = update.message!!.chat.id
-        return monoWithMdc {
+        return mdcMono {
             val entity = dao.getUserEntity(chatId)
             val messageId = update.message!!.messageId
             val sticker = update.message!!.sticker!!
             if (dao.stickerExists(chatId, sticker.fileUniqueId, false)) {
                 bot.executeAsync(SendMessage(chatId, "This sticker is already added! Please try another one.").setReplyToMessageId(update.message!!.messageId))
-                return@monoWithMdc
+                return@mdcMono
             }
             try {
                 logDebug(sticker.toString())

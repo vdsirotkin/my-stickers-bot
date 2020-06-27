@@ -18,7 +18,10 @@ import org.telegram.telegrambots.meta.updateshandlers.DownloadFileCallback
 import org.telegram.telegrambots.meta.updateshandlers.SentCallback
 import reactor.core.publisher.Mono
 import reactor.util.context.Context
+import ru.sokomishalov.commons.core.log.loggerFor
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
 import java.io.Serializable
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -32,14 +35,40 @@ fun SendMessage.addInlineKeyboard(title: String, url: String): SendMessage {
     return this
 }
 
-suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers.IO, block: suspend (File) -> T): T {
+suspend fun execWithLog(command: String) {
+    withContext(Dispatchers.IO) {
+        loggerFor(Runtime::class.java).info("Executing: $command")
+        Runtime.getRuntime().exec(command).inputStream.let {
+            BufferedReader(InputStreamReader(it)).readLines()
+        }
+    }
+}
+
+suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers.IO, delete: Boolean = true, block: suspend (File) -> T): T {
     return withContext(context) {
         val result = try {
             block(file)
         } catch (e: Exception) {
             throw e
         } finally {
-            file.delete()
+            if (delete) { // for debugging only!!!!!!
+                file.delete()
+            }
+        }
+        result
+    }
+}
+
+suspend fun <T> withTempFiles(file: Array<File>, context: CoroutineContext = Dispatchers.IO, delete: Boolean = true, block: suspend () -> T): T {
+    return withContext(context) {
+        val result = try {
+            block()
+        } catch (e: Exception) {
+            throw e
+        } finally {
+            if (delete) { // for debugging only!!!!!!
+                file.forEach { it.delete() }
+            }
         }
         result
     }
@@ -77,8 +106,8 @@ suspend fun DefaultAbsSender.downloadFileAsync(filePath: String): File {
     }
 }
 
-fun <T> monoWithMdc(context: CoroutineContext = EmptyCoroutineContext,
-                    block: suspend CoroutineScope.() -> T?): Mono<T> {
+fun <T> mdcMono(context: CoroutineContext = EmptyCoroutineContext,
+                block: suspend CoroutineScope.() -> T?): Mono<T> {
     return mono(context) {
         coroutineContext.resolveMdc()
         withContext(MDCContext()) {
