@@ -59,6 +59,21 @@ class NormalStickerHandler(
         }.thenReturn(Unit)
     }
 
+    private suspend fun addStickerToPack(bot: DefaultAbsSender,
+                                         messageId: Int,
+                                         chatId: Long,
+                                         sticker: Sticker,
+                                         entity: UserEntity,
+                                         messageSource: MessageSourceWrapper) {
+        withTempFile(preparePngFile(bot, sticker)) {
+            bot.execute(AddStickerToSet(chatId.toInt(), entity.normalPackName, sticker.emoji ?: "🙂").setPngSticker(it))
+        }
+        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.added"))
+                .setReplyToMessageId(messageId)
+                .addInlineKeyboard(messageSource.getMessage("sticker.pack.button.text"), "https://t.me/addstickers/${entity.normalPackName}")
+        )
+    }
+
     private suspend fun createNewPack(bot: DefaultAbsSender,
                                       messageId: Int,
                                       chatId: Long,
@@ -66,7 +81,7 @@ class NormalStickerHandler(
                                       entity: UserEntity,
                                       messageSource: MessageSourceWrapper) {
         withTempFile(preparePngFile(bot, sticker)) {
-            bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker.emoji!!).setPngStickerFile(it)
+            bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker.emoji ?: "🙂").setPngStickerFile(it)
                     .apply {
                         containsMasks = sticker.maskPosition != null
                         maskPosition = sticker.maskPosition
@@ -75,24 +90,9 @@ class NormalStickerHandler(
         }
         dao.setCreatedStatus(chatId, normalStickerCreated = true)
         bot.executeAsync(SendMessage(chatId, messageSource.getMessage("created.pack")
-                )
+        )
                 .setReplyToMessageId(messageId)
                 .addInlineKeyboard(messageSource.getMessage("sticker.pack.button.text"), "https://t.me/addstickers/${entity.normalPackName}"))
-    }
-
-    private suspend fun addStickerToPack(bot: DefaultAbsSender,
-                                         messageId: Int,
-                                         chatId: Long,
-                                         sticker: Sticker,
-                                         entity: UserEntity,
-                                         messageSource: MessageSourceWrapper) {
-        withTempFile(preparePngFile(bot, sticker)) {
-            bot.execute(AddStickerToSet(chatId.toInt(), entity.normalPackName, sticker.emoji!!).setPngSticker(it))
-        }
-        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.added"))
-                .setReplyToMessageId(messageId)
-                .addInlineKeyboard(messageSource.getMessage("sticker.pack.button.text"), "https://t.me/addstickers/${entity.normalPackName}")
-        )
     }
 
     private suspend fun preparePngFile(bot: DefaultAbsSender,
