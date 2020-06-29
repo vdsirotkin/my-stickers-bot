@@ -2,10 +2,8 @@ package com.vdsirotkin.telegram.mystickersbot.bot
 
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.HandlerFactory
-import com.vdsirotkin.telegram.mystickersbot.util.MDC_CALL_ID
-import com.vdsirotkin.telegram.mystickersbot.util.MDC_USER_ID
-import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
-import com.vdsirotkin.telegram.mystickersbot.util.resolveMdc
+import com.vdsirotkin.telegram.mystickersbot.service.LocalizedMessageSourceProvider
+import com.vdsirotkin.telegram.mystickersbot.util.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.slf4j.MDCContext
@@ -23,13 +21,24 @@ import java.util.*
 @Service
 class MyStickersBot(
         private val props: BotConfigProps,
-        private val handlerFactory: HandlerFactory
+        private val handlerFactory: HandlerFactory,
+        private val messageSourceProvider: LocalizedMessageSourceProvider
 ) : TelegramLongPollingBot() {
     override fun onUpdateReceived(update: Update) {
         val handler = when {
-            update.message.text == "/start" -> handlerFactory.startHandler()
-            update.message.hasSticker() -> processSticker(update.message.sticker)
+            update.message?.text == "/start" -> handlerFactory.startHandler()
+            update.message?.text == "/language" -> handlerFactory.languageHandler()
+            update.message?.hasSticker() == true -> processSticker(update.message.sticker)
+            update.hasCallbackQuery() -> when {
+                update.callbackQuery.data.contains(setLanguageCommandPrefix) -> handlerFactory.setLanguageHandler()
+                else -> handlerFactory.unknownMessageHandler()
+            }
             else -> handlerFactory.unknownMessageHandler()
+        }
+        val chatId = when {
+            update.hasMessage() -> update.message.chatId
+            update.hasCallbackQuery() -> update.callbackQuery.from.id.toLong()
+            else -> throw IllegalArgumentException("Unsupported message type")
         }
         Mono.just(handler)
                 .flatMap { it.handle(this, update) }
@@ -42,12 +51,12 @@ class MyStickersBot(
                         } else {
                             logger.error("Error occurred, message: ${t.message}", t)
                         }
-                        sendErrorMessagesAsync(update.message.chatId, MDC.get(MDC_CALL_ID))
+                        sendErrorMessagesAsync(chatId, MDC.get(MDC_CALL_ID))
                         MDC.clear()
                     }
                 }.subscriberContext {
                     it.put(MDC_CALL_ID, UUID.randomUUID().toString())
-                            .put(MDC_USER_ID, update.message.chatId.toString())
+                            .put(MDC_USER_ID, chatId.toString())
                 }.subscribe()
     }
 
@@ -62,8 +71,9 @@ class MyStickersBot(
     private fun sendErrorMessagesAsync(chatId: Long, callId: String) {
         GlobalScope.launch(MDCContext()) {
             try {
+                val messageSource = messageSourceProvider.getMessageSource(chatId)
                 executeAsync(SendMessage(props.serviceAccountId, "Error occurred, check call id $callId"))
-                executeAsync(SendMessage(chatId, "Sorry, some error occurred :( Admin is already notified, the problem will be fixed soon"))
+                executeAsync(SendMessage(chatId, messageSource.getMessage("error")))
             } catch (e: Exception) {
                 logger.error("Unrecoverable error, message: ${e.message}", e)
             }

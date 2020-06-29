@@ -1,8 +1,10 @@
-package com.vdsirotkin.telegram.mystickersbot.handler
+package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.util.*
+import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.DefaultAbsSender
 import org.telegram.telegrambots.meta.api.methods.GetFile
@@ -20,17 +22,20 @@ import java.nio.file.StandardCopyOption
 @Service
 class AnimatedStickerHandler(
         private val dao: StickerDAO,
-        private val props: BotConfigProps
-) : BaseHandler {
+        private val props: BotConfigProps,
+        override val stickerDao: StickerDAO,
+        override val messageSource: MessageSource
+) : LocalizedHandler {
 
-    override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> = mdcMono {
+    override fun handleInternal(bot: DefaultAbsSender, update: Update,
+                                messageSource: MessageSourceWrapper): Mono<Unit> = mdcMono {
         val chatId = update.message!!.chat.id
         val sticker = update.message!!.sticker!!
         logger.info(sticker.toString())
 
         val entity = dao.getUserEntity(chatId)
         if (dao.stickerExists(chatId, sticker.fileUniqueId, true)) {
-            bot.executeAsync(SendMessage(chatId, "This sticker is already added! Please try another one.").setReplyToMessageId(update.message!!.messageId))
+            bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).setReplyToMessageId(update.message!!.messageId))
             return@mdcMono
         }
         val stickerFile = getStickerFile(bot, sticker)
@@ -42,9 +47,9 @@ class AnimatedStickerHandler(
                 )
             }
             bot.executeAsync(
-                    SendMessage(chatId, "Successfully added :)")
+                    SendMessage(chatId, messageSource.getMessage("sticker.added"))
                             .setReplyToMessageId(update.message!!.messageId)
-                            .addInlineKeyboard("Your animated sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
+                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), "https://t.me/addstickers/${entity.animatedPackName}")
             )
         } else {
             optimizeIfNecessary(stickerFile) {
@@ -55,9 +60,9 @@ class AnimatedStickerHandler(
             }
             dao.setCreatedStatus(chatId, animatedStickerCreated = true)
             bot.executeAsync(
-                    SendMessage(chatId, "Successfully created sticker pack and added this sticker to it :)")
+                    SendMessage(chatId, messageSource.getMessage("created.pack"))
                             .setReplyToMessageId(update.message!!.messageId)
-                            .addInlineKeyboard("Your animated sticker pack", "https://t.me/addstickers/${entity.animatedPackName}")
+                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), "https://t.me/addstickers/${entity.animatedPackName}")
             )
         }
         dao.saveSticker(chatId, sticker, true)

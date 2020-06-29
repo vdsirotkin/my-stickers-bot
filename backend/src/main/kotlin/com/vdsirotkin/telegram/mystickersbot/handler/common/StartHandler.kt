@@ -1,18 +1,22 @@
-package com.vdsirotkin.telegram.mystickersbot.handler
+package com.vdsirotkin.telegram.mystickersbot.handler.common
 
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
+import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.DefaultAbsSender
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
+import java.util.*
 
 @Service
 class StartHandler(
         private val dao: StickerDAO,
+        private val messageSource: MessageSource,
         private val botConfigProps: BotConfigProps
 ) : BaseHandler {
 
@@ -27,7 +31,7 @@ class StartHandler(
             } else {
                 logger.warn("User already registered")
             }
-            bot.execute(SendMessage(chatId, "Hello! Start sending me stickers, and i'll add them to your personal pack!"))
+            bot.execute(SendMessage(chatId, messageSource.getMessage("welcome", null, Locale.ENGLISH)))
         }.thenReturn(Unit)
     }
 

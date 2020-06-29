@@ -1,6 +1,8 @@
 spring:
   application:
     name: my-stickers-bot
+  messages:
+    fallback-to-system-locale: false
 
 bot:
   webhook: false

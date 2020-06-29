@@ -64,4 +64,11 @@ class StickerDAO(
                 .awaitUnit()
     }
 
+    suspend fun saveUserLanguage(chatId: Long, selectedLanguage: String) {
+        template.findById(chatId.toString(), UserEntity::class.java)
+                .map { it.copy(language = selectedLanguage) }
+                .flatMap { template.save(it) }
+                .awaitUnit()
+    }
+
 }
