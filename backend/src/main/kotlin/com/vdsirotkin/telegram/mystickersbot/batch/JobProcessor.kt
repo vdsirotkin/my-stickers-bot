@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import org.slf4j.MDC
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
 import ru.sokomishalov.commons.core.log.Loggable
 
 @Service
@@ -39,7 +40,11 @@ class JobProcessor(
                     } else {
                         val e = result.exceptionOrNull()!!
                         MDC.put(MDC_USER_ID, it.toString())
-                        logger.warn("Can't send to user $it, message: ${e.message}", e)
+                        if (e is TelegramApiRequestException) {
+                            logger.warn("Can't send to user $it, message: ${e.message}, result: ${e.apiResponse}, errorCode: ${e.errorCode}")
+                        } else {
+                            logger.warn("Can't send to user $it, message: ${e.message}", e)
+                        }
                         MDC.clear()
                         it to BatchJobStatus.ERROR
                     }

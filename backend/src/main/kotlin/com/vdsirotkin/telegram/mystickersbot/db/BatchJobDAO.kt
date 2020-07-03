@@ -5,7 +5,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.BatchJobEntity
 import com.vdsirotkin.telegram.mystickersbot.db.entity.BatchJobStatus
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserStatus
 import com.vdsirotkin.telegram.mystickersbot.dto.BatchJobStats
-import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.reactive.awaitFirstOrElse
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.aggregation.Aggregation.*
 import org.springframework.data.mongodb.core.find
@@ -74,14 +74,14 @@ class BatchJobDAO(
                 unwind("userStatus"),
                 replaceRoot("userStatus"),
                 count().`as`("count")
-        ), BATCH_JOB_COLLECTION_NAME, Count::class.java).awaitFirst().count
+        ), BATCH_JOB_COLLECTION_NAME, Count::class.java).awaitFirstOrElse { Count(0) }.count
         val processedCount = template.aggregate(newAggregation(
                 match(Criteria.where("_id").`is`(jobId)),
                 unwind("userStatus"),
                 replaceRoot("userStatus"),
                 match(where(UserStatus::status).ne(BatchJobStatus.NOT_STARTED.name)),
                 count().`as`("count")
-        ), BATCH_JOB_COLLECTION_NAME, Count::class.java).awaitFirst().count
+        ), BATCH_JOB_COLLECTION_NAME, Count::class.java).awaitFirstOrElse { Count(0) }.count
 
         val successCount = template.aggregate(newAggregation(
                 match(Criteria.where("_id").`is`(jobId)),
@@ -89,7 +89,7 @@ class BatchJobDAO(
                 replaceRoot("userStatus"),
                 match(where(UserStatus::status).`is`(BatchJobStatus.SUCCESS.name)),
                 count().`as`("count")
-        ), BATCH_JOB_COLLECTION_NAME, Count::class.java).awaitFirst().count
+        ), BATCH_JOB_COLLECTION_NAME, Count::class.java).awaitFirstOrElse { Count(0) }.count
 
         return BatchJobStats(overallCount, processedCount, successCount)
     }
