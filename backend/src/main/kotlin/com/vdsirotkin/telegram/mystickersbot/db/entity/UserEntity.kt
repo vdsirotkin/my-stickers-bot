@@ -1,4 +1,4 @@
-package com.vdsirotkin.telegram.mystickersbot.dao
+package com.vdsirotkin.telegram.mystickersbot.db.entity
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document

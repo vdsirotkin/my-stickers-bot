@@ -1,6 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.util
 
-import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.runBlocking
 import org.springframework.scheduling.annotation.Scheduled

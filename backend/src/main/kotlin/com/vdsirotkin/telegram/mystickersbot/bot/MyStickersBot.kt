@@ -4,6 +4,8 @@ import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.HandlerFactory
 import com.vdsirotkin.telegram.mystickersbot.service.LocalizedMessageSourceProvider
 import com.vdsirotkin.telegram.mystickersbot.util.*
+import io.github.resilience4j.ratelimiter.RateLimiter
+import io.github.resilience4j.retry.Retry
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.slf4j.MDCContext
@@ -14,7 +16,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
-import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toMono
 import ru.sokomishalov.commons.core.log.Loggable
 import java.util.*
 
@@ -22,7 +24,9 @@ import java.util.*
 class MyStickersBot(
         private val props: BotConfigProps,
         private val handlerFactory: HandlerFactory,
-        private val messageSourceProvider: LocalizedMessageSourceProvider
+        private val messageSourceProvider: LocalizedMessageSourceProvider,
+        val retry: Retry,
+        val rateLimiter: RateLimiter
 ) : TelegramLongPollingBot() {
     override fun onUpdateReceived(update: Update) {
         val handler = when {
@@ -40,7 +44,7 @@ class MyStickersBot(
             update.hasCallbackQuery() -> update.callbackQuery.from.id.toLong()
             else -> throw IllegalArgumentException("Unsupported message type")
         }
-        Mono.just(handler)
+        handler.toMono()
                 .flatMap { it.handle(this, update) }
                 .doOnEach {
                     if (it.isOnError) {

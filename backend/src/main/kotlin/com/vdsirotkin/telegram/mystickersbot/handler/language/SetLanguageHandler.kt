@@ -1,6 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.language
 
-import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import com.vdsirotkin.telegram.mystickersbot.util.mdcMono

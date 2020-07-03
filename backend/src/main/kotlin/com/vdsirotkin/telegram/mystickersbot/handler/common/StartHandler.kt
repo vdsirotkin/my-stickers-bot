@@ -1,8 +1,9 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.common
 
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
-import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
+import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
 import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
@@ -31,7 +32,7 @@ class StartHandler(
             } else {
                 logger.warn("User already registered")
             }
-            bot.execute(SendMessage(chatId, messageSource.getMessage("welcome", null, Locale.ENGLISH)))
+            bot.executeAsync(SendMessage(chatId, messageSource.getMessage("welcome", null, Locale.ENGLISH)))
         }.thenReturn(Unit)
     }
 

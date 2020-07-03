@@ -3,6 +3,10 @@ spring:
     name: my-stickers-bot
   messages:
     fallback-to-system-locale: false
+  security:
+    user:
+      name: admin
+      password: ${ADMIN_PASS:admin}
 
 bot:
   webhook: false

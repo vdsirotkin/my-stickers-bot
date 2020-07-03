@@ -1,7 +1,7 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
-import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.util.*
 import org.springframework.context.MessageSource
@@ -41,10 +41,12 @@ class AnimatedStickerHandler(
         val stickerFile = getStickerFile(bot, sticker)
         if (entity.animatedPackCreated) {
             optimizeIfNecessary(stickerFile) {
-                bot.execute(AddStickerToSet(chatId.toInt(), entity.animatedPackName, sticker.emoji ?: "🙂")
-                        .setTgsSticker(it)
-                        .setMaskPosition(sticker.maskPosition)
-                )
+                bot.wrapApiCall {
+                    bot.execute(AddStickerToSet(chatId.toInt(), entity.animatedPackName, sticker.emoji ?: "🙂")
+                            .setTgsSticker(it)
+                            .setMaskPosition(sticker.maskPosition)
+                    )
+                }
             }
             bot.executeAsync(
                     SendMessage(chatId, messageSource.getMessage("sticker.added"))
@@ -53,10 +55,12 @@ class AnimatedStickerHandler(
             )
         } else {
             optimizeIfNecessary(stickerFile) {
-                bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji ?: "🙂")
-                        .setTgsSticker(it)
-                        .apply { containsMasks = sticker.maskPosition != null; maskPosition = sticker.maskPosition }
-                )
+                bot.wrapApiCall {
+                    bot.execute(CreateNewStickerSet(chatId.toInt(), entity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji ?: "🙂")
+                            .setTgsSticker(it)
+                            .apply { containsMasks = sticker.maskPosition != null; maskPosition = sticker.maskPosition }
+                    )
+                }
             }
             dao.setCreatedStatus(chatId, animatedStickerCreated = true)
             bot.executeAsync(

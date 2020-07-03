@@ -1,8 +1,8 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
-import com.vdsirotkin.telegram.mystickersbot.dao.StickerDAO
-import com.vdsirotkin.telegram.mystickersbot.dao.UserEntity
+import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.service.PngService
@@ -66,7 +66,11 @@ class NormalStickerHandler(
                                          entity: UserEntity,
                                          messageSource: MessageSourceWrapper) {
         withTempFile(preparePngFile(bot, sticker)) {
-            bot.execute(AddStickerToSet(chatId.toInt(), entity.normalPackName, sticker.emoji ?: "🙂").setPngSticker(it))
+            bot.wrapApiCall {
+                bot.execute(AddStickerToSet(chatId.toInt(), entity.normalPackName, sticker.emoji ?: "🙂").setPngSticker(it)
+
+                )
+            }
         }
         bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.added"))
                 .setReplyToMessageId(messageId)
@@ -81,12 +85,14 @@ class NormalStickerHandler(
                                       entity: UserEntity,
                                       messageSource: MessageSourceWrapper) {
         withTempFile(preparePngFile(bot, sticker)) {
-            bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker.emoji ?: "🙂").setPngStickerFile(it)
+            bot.wrapApiCall {
+                bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker.emoji ?: "🙂").setPngStickerFile(it)
                     .apply {
                         containsMasks = sticker.maskPosition != null
                         maskPosition = sticker.maskPosition
                     }
             )
+            }
         }
         dao.setCreatedStatus(chatId, normalStickerCreated = true)
         bot.executeAsync(SendMessage(chatId, messageSource.getMessage("created.pack")

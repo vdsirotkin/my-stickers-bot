@@ -1,5 +1,8 @@
 package com.vdsirotkin.telegram.mystickersbot.util
 
+import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
+import io.github.resilience4j.kotlin.ratelimiter.executeSuspendFunction
+import io.github.resilience4j.kotlin.retry.executeSuspendFunction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactor.ReactorContext
@@ -44,7 +47,8 @@ suspend fun execWithLog(command: String) {
     }
 }
 
-suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers.IO, delete: Boolean = true, block: suspend (File) -> T): T {
+suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers.IO, delete: Boolean = true,
+                             block: suspend (File) -> T): T {
     return withContext(context) {
         val result = try {
             block(file)
@@ -59,7 +63,8 @@ suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers
     }
 }
 
-suspend fun <T> withTempFiles(file: Array<File>, context: CoroutineContext = Dispatchers.IO, delete: Boolean = true, block: suspend () -> T): T {
+suspend fun <T> withTempFiles(file: Array<File>, context: CoroutineContext = Dispatchers.IO, delete: Boolean = true,
+                              block: suspend () -> T): T {
     return withContext(context) {
         val result = try {
             block()
@@ -75,20 +80,35 @@ suspend fun <T> withTempFiles(file: Array<File>, context: CoroutineContext = Dis
 }
 
 suspend fun <T : Serializable> DefaultAbsSender.executeAsync(method: BotApiMethod<T>): T {
-    return suspendCancellableCoroutine { cont ->
-        this.executeAsync(method, object : SentCallback<T> {
-            override fun onResult(method: BotApiMethod<T>?, p1: T) {
-                cont.resume(p1)
-            }
+    return wrapApiCall {
+        suspendCancellableCoroutine<T> { cont ->
+            this.executeAsync(method, object : SentCallback<T> {
+                override fun onResult(method: BotApiMethod<T>?, p1: T) {
+                    cont.resume(p1)
+                }
 
-            override fun onException(method: BotApiMethod<T>?, p1: Exception?) {
-                cont.cancel(p1)
-            }
+                override fun onException(method: BotApiMethod<T>?, p1: Exception?) {
+                    cont.cancel(p1)
+                }
 
-            override fun onError(method: BotApiMethod<T>?, p1: TelegramApiRequestException?) {
-                cont.cancel(p1)
+                override fun onError(method: BotApiMethod<T>?, p1: TelegramApiRequestException?) {
+                    cont.cancel(p1)
+                }
+            })
+        }
+//        Message() as T
+    }
+}
+
+suspend fun <T> DefaultAbsSender.wrapApiCall(block: suspend () -> T): T {
+    return if (this is MyStickersBot) {
+        retry.executeSuspendFunction {
+            rateLimiter.executeSuspendFunction {
+                block()
             }
-        })
+        }
+    } else {
+        block()
     }
 }
 

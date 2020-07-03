@@ -1,16 +1,17 @@
-package com.vdsirotkin.telegram.mystickersbot.dao
+package com.vdsirotkin.telegram.mystickersbot.db
 
+import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.findById
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Repository
 import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import ru.sokomishalov.commons.core.reactor.await
 import ru.sokomishalov.commons.core.reactor.awaitStrict
 import ru.sokomishalov.commons.core.reactor.awaitUnit
 
-@Service
+@Repository
 class StickerDAO(
         private val template: ReactiveMongoTemplate
 ) {
