@@ -33,7 +33,7 @@ class JobProcessor(
             nextBatch.map {
                 async {
                     val result = runCatching {
-                        bot.executeAsync(SendMessage(it, text).enableMarkdownV2(true))
+                        bot.executeAsync(SendMessage(it, text).enableHtml(true))
                     }
                     if (result.isSuccess) {
                         it to BatchJobStatus.SUCCESS
