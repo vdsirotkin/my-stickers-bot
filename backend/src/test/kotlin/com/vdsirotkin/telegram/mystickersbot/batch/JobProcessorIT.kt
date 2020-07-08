@@ -8,6 +8,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.BatchJobStatus
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserStatus
 import io.github.resilience4j.ratelimiter.RateLimiter
 import io.github.resilience4j.retry.Retry
+import io.github.resilience4j.retry.RetryConfig
 import io.mockk.every
 import io.mockk.mockkClass
 import kotlinx.coroutines.runBlocking
@@ -48,7 +49,7 @@ class JobProcessorIT {
         template.remove(Query(), BatchJobEntity::class.java).block()
         val random = Random(currentTimeMillis())
         val bot = mockkClass(MyStickersBot::class) {
-            every { retry } returns Retry.ofDefaults("")
+            every { retry } returns Retry.of("", RetryConfig.custom<Any>().retryOnException { false }.build())
             every { rateLimiter } returns RateLimiter.ofDefaults("")
             every {
                 executeAsync(any<SendMessage>(), any<SentCallback<Message>>())

@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.slf4j.MDCContext
 import org.slf4j.MDC
 import org.springframework.stereotype.Service
+import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
@@ -26,8 +27,9 @@ class MyStickersBot(
         private val handlerFactory: HandlerFactory,
         private val messageSourceProvider: LocalizedMessageSourceProvider,
         val retry: Retry,
-        val rateLimiter: RateLimiter
-) : TelegramLongPollingBot() {
+        val rateLimiter: RateLimiter,
+        defaultBotOptions: DefaultBotOptions
+) : TelegramLongPollingBot(defaultBotOptions) {
     override fun onUpdateReceived(update: Update) {
         val handler = when {
             update.message?.text == "/start" -> handlerFactory.startHandler()
