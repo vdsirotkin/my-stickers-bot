@@ -29,10 +29,12 @@ class MyStickersBot(
         val rateLimiter: RateLimiter
 ) : TelegramLongPollingBot() {
     override fun onUpdateReceived(update: Update) {
-        val handler = when {
+        val handler: BaseHandler = when {
             update.message?.text == "/start" -> handlerFactory.startHandler()
             update.message?.text == "/language" -> handlerFactory.languageHandler()
             update.message?.hasSticker() == true -> processSticker(update.message.sticker)
+            update.message?.hasPhoto() == true -> handlerFactory.photoHandler()
+            update.message?.hasDocument() == true -> handlerFactory.documentHandler()
             update.hasCallbackQuery() -> when {
                 update.callbackQuery.data.contains(setLanguageCommandPrefix) -> handlerFactory.setLanguageHandler()
                 else -> handlerFactory.unknownMessageHandler()

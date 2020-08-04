@@ -2,14 +2,12 @@ package com.vdsirotkin.telegram.mystickersbot.web
 
 import com.vdsirotkin.telegram.mystickersbot.batch.JobManager
 import com.vdsirotkin.telegram.mystickersbot.batch.JobProcessor
-import kotlinx.coroutines.reactor.mono
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
-import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
 
 @Controller
@@ -19,21 +17,21 @@ class BatchSendController(
 ) {
 
     @GetMapping("/batch/list")
-    fun listBatch(model: Model): Mono<String> = mono {
+    suspend fun listBatch(model: Model): String {
         val list = jobManager.listJobs()
         model.addAttribute("batchIds", list.map { BatchListInfo(it.first, it.second) })
-        "batch/list"
+        return "batch/list"
     }
 
     @GetMapping("/batch/show")
-    fun showBatchJob(@RequestParam("id") id: String, model: Model): Mono<String> = mono {
+    suspend fun showBatchJob(@RequestParam("id") id: String, model: Model): String {
         val meta = jobManager.getJobMeta(id)
         model.addAttribute("batch", meta.let {
             val jobMeta = it.jobMeta
             val (id1, name, text, _, _) = jobMeta
             BatchViewInfo(id1, name, text, it.jobStats.processedCount, it.jobStats.overallCount, it.jobStats.successCount, it.jobStats.overallCount - it.jobStats.successCount)
         })
-        "batch/show"
+        return "batch/show"
     }
 
     @GetMapping("/batch/new")
@@ -43,9 +41,9 @@ class BatchSendController(
     }
 
     @PostMapping("/batch/new")
-    fun startNewBatch(@ModelAttribute request: NewBatchRequest, model: Model): Mono<String> = mono {
+    suspend fun startNewBatch(@ModelAttribute request: NewBatchRequest, model: Model): String {
         model.addAttribute("request", request)
-        kotlin.runCatching {
+        return kotlin.runCatching {
             val job = jobManager.createNewJob(request.name, request.text)
             jobProcessor.startJob(job.id)
         }.fold({

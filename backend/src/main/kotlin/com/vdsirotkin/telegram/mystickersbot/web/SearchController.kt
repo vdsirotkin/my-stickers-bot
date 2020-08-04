@@ -2,7 +2,6 @@ package com.vdsirotkin.telegram.mystickersbot.web
 
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
-import kotlinx.coroutines.reactor.mono
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
@@ -22,12 +21,12 @@ class IndexController(
     }
 
     @PostMapping("/search/userId")
-    fun search(@ModelAttribute searchRequest: SearchRequest, model: Model) = mono {
+    suspend fun search(@ModelAttribute searchRequest: SearchRequest, model: Model): String {
         val chatId = searchRequest.userId!!.toLong()
         val chat = myStickersBot.executeAsync(GetChat(chatId))
         model.addAttribute("chat", chat)
         model.addAttribute("search", searchRequest)
-        "search"
+        return "search"
     }
 
 }
