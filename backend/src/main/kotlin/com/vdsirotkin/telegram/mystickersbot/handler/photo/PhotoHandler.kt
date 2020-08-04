@@ -16,6 +16,7 @@ import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
 import org.telegram.telegrambots.meta.api.objects.PhotoSize
 import org.telegram.telegrambots.meta.api.objects.Update
 import reactor.core.publisher.Mono
+import ru.sokomishalov.commons.core.log.Loggable
 import java.io.File
 import java.nio.file.Files
 import kotlin.math.roundToInt
@@ -23,14 +24,16 @@ import kotlin.math.roundToInt
 @Component
 class PhotoHandler(override val stickerDao: StickerDAO, override val messageSource: MessageSource) : LocalizedHandler {
 
-
     override fun handleInternal(bot: DefaultAbsSender,
                                 update: Update,
                                 messageSource: MessageSourceWrapper): Mono<Unit> = mdcMono {
         val chatId = update.message.chatId
+        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("please.wait")))
         val entity = stickerDao.getUserEntity(chatId)
         val photos = update.message.photo
+        logger.info("Received photos: $photos")
         val photo = photos.maxBy { it.fileSize }!!
+        logger.info("Selected photo: $photo")
         val file = downloadFile(bot, photo)
         val resized = withTempFile(file) {
             resizeImage(file)
@@ -49,21 +52,28 @@ class PhotoHandler(override val stickerDao: StickerDAO, override val messageSour
         val width = metadata.width
         val height = metadata.height
         val newImage = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".png").toFile()
-        if (height > width) { // vertical
-            val newHeight = 512
-            val coefficient = newHeight.toDouble() / height.toDouble()
-            val newWidth = (width * coefficient).roundToInt()
-            Thumbnails.of(file).forceSize(newWidth, newHeight).toFile(newImage)
-        } else if (width >= height) { // horizontal
-            val newWidth = 512
-            val coefficient = newWidth.toDouble() / width.toDouble()
-            val newHeight = (height * coefficient).roundToInt()
-            Thumbnails.of(file).forceSize(newWidth, newHeight).toFile(newImage)
-        } else { // square
-            val newWidth = 512
-            val newHeight = 512
-            Thumbnails.of(file).forceSize(newWidth, newHeight).toFile(newImage)
+        val dimensions = when {
+            height > width -> { // vertical
+                val newHeight = 512
+                val coefficient = newHeight.toDouble() / height.toDouble()
+                val newWidth = (width * coefficient).roundToInt()
+                Dimensions(newWidth, newHeight)
+            }
+            width > height -> { // horizontal
+                val newWidth = 512
+                val coefficient = newWidth.toDouble() / width.toDouble()
+                val newHeight = (height * coefficient).roundToInt()
+                Dimensions(newWidth, newHeight)
+            }
+            else -> { // square
+                val newWidth = 512
+                val newHeight = 512
+                Dimensions(newWidth, newHeight)
+            }
         }
+        val (newWidth, newHeight) = dimensions
+        logger.info("Old dimensions: w$width,h$height, new dimesions: w$newWidth,h$newHeight")
+        Thumbnails.of(file).forceSize(newWidth, newHeight).toFile(newImage)
         return newImage
     }
 
@@ -71,6 +81,10 @@ class PhotoHandler(override val stickerDao: StickerDAO, override val messageSour
         val file = bot.executeAsync(GetFile().apply { fileId = photoSize.fileId })
         bot.downloadFile(file.filePath)
     }
+
+    companion object : Loggable
+
+    data class Dimensions(val width: Int, val height: Int)
 
 
 }
