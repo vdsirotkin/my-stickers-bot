@@ -96,11 +96,10 @@ suspend fun <T : Serializable> DefaultAbsSender.executeAsync(method: BotApiMetho
                 }
             })
         }
-//        Message() as T
     }
 }
 
-suspend fun <T> DefaultAbsSender.wrapApiCall(block: suspend () -> T): T {
+suspend fun <T> DefaultAbsSender.wrapApiCall(block: suspend DefaultAbsSender.() -> T): T {
     return if (this is MyStickersBot) {
         retry.executeSuspendFunction {
             rateLimiter.executeSuspendFunction {
@@ -113,16 +112,18 @@ suspend fun <T> DefaultAbsSender.wrapApiCall(block: suspend () -> T): T {
 }
 
 suspend fun DefaultAbsSender.downloadFileAsync(filePath: String): File {
-    return suspendCancellableCoroutine { cont ->
-        this.downloadFileAsync(filePath, object : DownloadFileCallback<String?> {
-            override fun onResult(p0: String?, p1: File?) {
-                cont.resume(p1!!)
-            }
+    return wrapApiCall {
+        suspendCancellableCoroutine<File> { cont ->
+            this.downloadFileAsync(filePath, object : DownloadFileCallback<String?> {
+                override fun onResult(p0: String?, p1: File?) {
+                    cont.resume(p1!!)
+                }
 
-            override fun onException(p0: String?, p1: java.lang.Exception?) {
-                cont.cancel(p1)
-            }
-        })
+                override fun onException(p0: String?, p1: java.lang.Exception?) {
+                    cont.cancel(p1)
+                }
+            })
+        }
     }
 }
 

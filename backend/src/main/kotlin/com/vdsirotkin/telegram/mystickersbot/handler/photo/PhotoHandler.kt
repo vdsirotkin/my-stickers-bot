@@ -39,7 +39,7 @@ class PhotoHandler(override val stickerDao: StickerDAO, override val messageSour
             resizeImage(file)
         }
         withTempFile(resized) {
-            bot.execute(AddStickerToSet(chatId.toInt(), entity.normalPackName, "😀").setPngSticker(resized))
+            bot.wrapApiCall { execute(AddStickerToSet(chatId.toInt(), entity.normalPackName, "😀").setPngSticker(resized)) }
             bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.added"))
                     .setReplyToMessageId(update.message.messageId)
                     .addInlineKeyboard(messageSource.getMessage("sticker.pack.button.text"), "https://t.me/addstickers/${entity.normalPackName}"))
@@ -79,7 +79,7 @@ class PhotoHandler(override val stickerDao: StickerDAO, override val messageSour
 
     private suspend fun downloadFile(bot: DefaultAbsSender, photoSize: PhotoSize): File = withContext(Dispatchers.IO) {
         val file = bot.executeAsync(GetFile().apply { fileId = photoSize.fileId })
-        bot.downloadFile(file.filePath)
+        bot.downloadFileAsync(file.filePath)
     }
 
     companion object : Loggable
