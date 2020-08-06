@@ -23,4 +23,5 @@ management:
 logging:
   level:
     com.vdsirotkin: debug
+    com.vdsirotkin.telegram.mystickersbot.util.security.CustomRequestCache: error
     io.github.biezhi: debug

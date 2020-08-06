@@ -16,6 +16,8 @@
 
     <properties>
         <java.version>1.8</java.version>
+        <vaadin.productionMode>true</vaadin.productionMode>
+        <vaadin.version>14.3.0</vaadin.version>
     </properties>
 
     <repositories>
@@ -33,10 +35,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb-reactive</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -105,6 +103,19 @@
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
             <version>6.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>vaadin-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>flow-server-production-mode</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.mvysny.karibudsl</groupId>
+            <artifactId>karibu-dsl</artifactId>
+            <version>1.0.2</version>
         </dependency>
 
         <dependency>
@@ -191,10 +202,35 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>com.vdsirotkin.telegram.mystickersbot.MyStickersBotApplicationKt</mainClass>
+                    <jvmArguments>-Dvaadin.productionMode</jvmArguments>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-maven-plugin</artifactId>
+                <version>${vaadin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-frontend</goal>
+                            <goal>build-frontend</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-bom</artifactId>
+                <version>${vaadin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>
