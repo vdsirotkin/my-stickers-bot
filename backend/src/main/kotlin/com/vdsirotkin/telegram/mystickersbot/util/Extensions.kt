@@ -13,7 +13,10 @@ import kotlinx.coroutines.withContext
 import org.slf4j.MDC
 import org.telegram.telegrambots.bots.DefaultAbsSender
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
+import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
@@ -108,6 +111,14 @@ suspend fun <T> DefaultAbsSender.wrapApiCall(block: suspend DefaultAbsSender.() 
         }
     } else {
         block()
+    }
+}
+
+suspend fun DefaultAbsSender.executeStickerPackAction(method: PartialBotApiMethod<Boolean>) {
+    when (method) {
+        is CreateNewStickerSet -> wrapApiCall { execute(method) }
+        is AddStickerToSet -> wrapApiCall { execute(method) }
+        else -> throw UnsupportedOperationException("${method.javaClass} is not supported by executeStickerPack")
     }
 }
 

@@ -1,12 +1,15 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
-import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
-import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
-import com.vdsirotkin.telegram.mystickersbot.service.PngService
-import com.vdsirotkin.telegram.mystickersbot.util.*
+import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
+import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
+import com.vdsirotkin.telegram.mystickersbot.service.image.PngService
+import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
+import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
+import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
+import com.vdsirotkin.telegram.mystickersbot.util.withTempFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.context.MessageSource
@@ -14,8 +17,6 @@ import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.DefaultAbsSender
 import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
-import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import reactor.core.publisher.Mono
@@ -27,7 +28,8 @@ import java.nio.file.Files
 class NormalStickerHandler(
         private val dao: StickerDAO,
         private val pngService: PngService,
-        private val props: BotConfigProps,
+        private val stickerPackManagementService: StickerPackManagementService,
+        private val stickerPackMessagesSender: StickerPackMessagesSender,
         override val stickerDao: StickerDAO,
         override val messageSource: MessageSource
 ) : LocalizedHandler {
@@ -44,12 +46,17 @@ class NormalStickerHandler(
             }
             try {
                 logDebug(sticker.toString())
-                if (entity.normalPackCreated) {
-                    addStickerToPack(bot, messageId, chatId, sticker, entity, messageSource)
-                } else {
-                    createNewPack(bot, messageId, chatId, sticker, entity, messageSource)
+                withTempFile(preparePngFile(bot, sticker)) {
+                    if (entity.normalPackCreated) {
+                        stickerPackManagementService.addStickerToPack(bot, chatId, it, entity, sticker.emoji)
+                        stickerPackMessagesSender.sendSuccessAdd(bot, chatId, messageSource, messageId, entity)
+                    } else {
+                        stickerPackManagementService.createNewPack(bot, chatId, it, entity)
+                        dao.setCreatedStatus(chatId, normalStickerCreated = true)
+                        stickerPackMessagesSender.sendSuccessCreated(bot, chatId, messageSource, messageId, entity)
+                    }
+                    dao.saveSticker(chatId, sticker, false)
                 }
-                dao.saveSticker(chatId, sticker, false)
             } catch (e: PngNotCreatedException) {
                 logger.warn("Can't create png from this sticker")
                 bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.cant.be.processed")).setReplyToMessageId(messageId))
@@ -57,48 +64,6 @@ class NormalStickerHandler(
                 throw e
             }
         }.thenReturn(Unit)
-    }
-
-    private suspend fun addStickerToPack(bot: DefaultAbsSender,
-                                         messageId: Int,
-                                         chatId: Long,
-                                         sticker: Sticker,
-                                         entity: UserEntity,
-                                         messageSource: MessageSourceWrapper) {
-        withTempFile(preparePngFile(bot, sticker)) {
-            bot.wrapApiCall {
-                bot.execute(AddStickerToSet(chatId.toInt(), entity.normalPackName, sticker.emoji ?: "🙂").setPngSticker(it)
-
-                )
-            }
-        }
-        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.added"))
-                .setReplyToMessageId(messageId)
-                .addInlineKeyboard(messageSource.getMessage("sticker.pack.button.text"), "https://t.me/addstickers/${entity.normalPackName}")
-        )
-    }
-
-    private suspend fun createNewPack(bot: DefaultAbsSender,
-                                      messageId: Int,
-                                      chatId: Long,
-                                      sticker: Sticker,
-                                      entity: UserEntity,
-                                      messageSource: MessageSourceWrapper) {
-        withTempFile(preparePngFile(bot, sticker)) {
-            bot.wrapApiCall {
-                bot.execute(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker.emoji ?: "🙂").setPngStickerFile(it)
-                    .apply {
-                        containsMasks = sticker.maskPosition != null
-                        maskPosition = sticker.maskPosition
-                    }
-            )
-            }
-        }
-        dao.setCreatedStatus(chatId, normalStickerCreated = true)
-        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("created.pack")
-        )
-                .setReplyToMessageId(messageId)
-                .addInlineKeyboard(messageSource.getMessage("sticker.pack.button.text"), "https://t.me/addstickers/${entity.normalPackName}"))
     }
 
     private suspend fun preparePngFile(bot: DefaultAbsSender,

@@ -1,4 +1,4 @@
-package com.vdsirotkin.telegram.mystickersbot.service
+package com.vdsirotkin.telegram.mystickersbot.service.image
 
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
 import io.github.biezhi.webp.WebpIO

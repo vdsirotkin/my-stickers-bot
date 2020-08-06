@@ -3,6 +3,7 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
+import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.util.*
 import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
@@ -24,7 +25,8 @@ class AnimatedStickerHandler(
         private val dao: StickerDAO,
         private val props: BotConfigProps,
         override val stickerDao: StickerDAO,
-        override val messageSource: MessageSource
+        override val messageSource: MessageSource,
+        val fileHelper: FileHelper
 ) : LocalizedHandler {
 
     override fun handleInternal(bot: DefaultAbsSender, update: Update,
@@ -38,7 +40,7 @@ class AnimatedStickerHandler(
             bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).setReplyToMessageId(update.message!!.messageId))
             return@mdcMono
         }
-        val stickerFile = getStickerFile(bot, sticker)
+        val stickerFile = fileHelper.downloadFile(bot, sticker.fileId)
         if (entity.animatedPackCreated) {
             optimizeIfNecessary(stickerFile) {
                 bot.wrapApiCall {
