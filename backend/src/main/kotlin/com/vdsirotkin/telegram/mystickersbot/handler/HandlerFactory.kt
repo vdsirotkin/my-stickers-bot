@@ -14,28 +14,28 @@ import org.springframework.stereotype.Service
 @Service
 abstract class HandlerFactory {
 
-    @Lookup
-    abstract fun startHandler(): StartHandler
+    @get:Lookup
+    abstract val startHandler: StartHandler
 
-    @Lookup
-    abstract fun normalStickerHandler(): NormalStickerHandler
+    @get:Lookup
+    abstract val normalStickerHandler: NormalStickerHandler
 
-    @Lookup
-    abstract fun animatedStickerHandler(): AnimatedStickerHandler
+    @get:Lookup
+    abstract val animatedStickerHandler: AnimatedStickerHandler
 
-    @Lookup
-    abstract fun unknownMessageHandler(): UnknownMessageHandler
+    @get:Lookup
+    abstract val unknownMessageHandler: UnknownMessageHandler
 
-    @Lookup
-    abstract fun languageHandler(): LanguageHandler
+    @get:Lookup
+    abstract val languageHandler: LanguageHandler
 
-    @Lookup
-    abstract fun setLanguageHandler(): SetLanguageHandler
+    @get:Lookup
+    abstract val setLanguageHandler: SetLanguageHandler
 
-    @Lookup
-    abstract fun photoHandler(): PhotoHandler
+    @get:Lookup
+    abstract val photoHandler: PhotoHandler
 
-    @Lookup
-    abstract fun documentHandler(): DocumentHandler
+    @get:Lookup
+    abstract val documentHandler: DocumentHandler
 
 }

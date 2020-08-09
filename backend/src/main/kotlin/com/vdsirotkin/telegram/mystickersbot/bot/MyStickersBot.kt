@@ -32,16 +32,16 @@ class MyStickersBot(
 ) : TelegramLongPollingBot(defaultBotOptions) {
     override fun onUpdateReceived(update: Update) {
         val handler: BaseHandler = when {
-            update.message?.text in arrayOf("/start", "/help")  -> handlerFactory.startHandler()
-            update.message?.text == "/language" -> handlerFactory.languageHandler()
+            update.message?.text in arrayOf("/start", "/help")  -> handlerFactory.startHandler
+            update.message?.text == "/language" -> handlerFactory.languageHandler
             update.message?.hasSticker() == true -> processSticker(update.message.sticker)
-            update.message?.hasPhoto() == true -> handlerFactory.photoHandler()
-            update.message?.hasDocument() == true -> handlerFactory.documentHandler()
+            update.message?.hasPhoto() == true -> handlerFactory.photoHandler
+            update.message?.hasDocument() == true -> handlerFactory.documentHandler
             update.hasCallbackQuery() -> when {
-                update.callbackQuery.data.contains(setLanguageCommandPrefix) -> handlerFactory.setLanguageHandler()
-                else -> handlerFactory.unknownMessageHandler()
+                update.callbackQuery.data.contains(setLanguageCommandPrefix) -> handlerFactory.setLanguageHandler
+                else -> handlerFactory.unknownMessageHandler
             }
-            else -> handlerFactory.unknownMessageHandler()
+            else -> handlerFactory.unknownMessageHandler
         }
         val chatId = when {
             update.hasMessage() -> update.message.chatId
@@ -70,9 +70,9 @@ class MyStickersBot(
 
     private fun processSticker(sticker: Sticker): BaseHandler {
         return if (sticker.animated) {
-            handlerFactory.animatedStickerHandler()
+            handlerFactory.animatedStickerHandler
         } else {
-            handlerFactory.normalStickerHandler()
+            handlerFactory.normalStickerHandler
         }
     }
 
