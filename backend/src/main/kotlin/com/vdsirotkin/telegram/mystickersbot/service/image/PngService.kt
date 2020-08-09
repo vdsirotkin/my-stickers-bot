@@ -16,6 +16,9 @@ class PngService {
 
     fun jpegToPng(newJpgImage: File, newImage: File) {
         reducePngSize(newImage, newImage)
+        if (tooBigSize(newImage.toPath())) {
+            throw PngNotCreatedException()
+        }
     }
 
     /**
