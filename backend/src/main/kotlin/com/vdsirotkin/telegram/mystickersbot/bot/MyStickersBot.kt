@@ -32,7 +32,7 @@ class MyStickersBot(
 ) : TelegramLongPollingBot(defaultBotOptions) {
     override fun onUpdateReceived(update: Update) {
         val handler: BaseHandler = when {
-            update.message?.text == "/start" -> handlerFactory.startHandler()
+            update.message?.text in arrayOf("/start", "/help")  -> handlerFactory.startHandler()
             update.message?.text == "/language" -> handlerFactory.languageHandler()
             update.message?.hasSticker() == true -> processSticker(update.message.sticker)
             update.message?.hasPhoto() == true -> handlerFactory.photoHandler()
