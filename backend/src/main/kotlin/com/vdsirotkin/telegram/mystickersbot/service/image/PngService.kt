@@ -14,13 +14,17 @@ import java.util.stream.Collectors
 @Service
 class PngService {
 
+    fun jpegToPng(newJpgImage: File, newImage: File) {
+        reducePngSize(newImage, newImage)
+    }
+
     /**
      * Method for converting webp to png, also treats 512kb telegram limitation
      *
      * @return PNG file path
      * @throws com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException when some IO exception occurres or can't fit telegram limitations
      */
-    fun convertToPng(webpFile: File): File {
+    fun webpToPng(webpFile: File): File {
         val pngFilePath = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".png")
         val pngFile = pngFilePath.toFile()
         WebpIO.create().toNormalImage(webpFile, pngFile)
@@ -33,9 +37,9 @@ class PngService {
         return pngFilePath.toFile()
     }
 
-    private fun reducePngSize(webpFile: File, pngFilePath: File) {
+    private fun reducePngSize(inputFile: File, pngFilePath: File) {
         val runtime = Runtime.getRuntime()
-        var command = "ffmpeg -y -i ${webpFile.absolutePath} ${pngFilePath.absolutePath}"
+        var command = "ffmpeg -y -i ${inputFile.absolutePath} ${pngFilePath.absolutePath}"
         logDebug("Executing system command: $command")
         var inputStream = runtime.exec(command).inputStream
         var reader = BufferedReader(InputStreamReader(inputStream))
@@ -47,7 +51,6 @@ class PngService {
         reader = BufferedReader(InputStreamReader(inputStream))
         reader.lines().collect(Collectors.joining("\n")).also { logDebug("Result: $it") }
     }
-
     private fun tooBigSize(pngFilePath: Path?) = (Files.size(pngFilePath) / 1024) > 500
 
     companion object : Loggable

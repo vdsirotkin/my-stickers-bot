@@ -9,12 +9,12 @@ import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 
 @Service
+@Profile("heroku")
 class StartupMessage(
         private val bot: MyStickersBot,
         private val props: BotConfigProps
 ) {
 
-    @Profile("heroku")
     @EventListener(ContextRefreshedEvent::class)
     fun started() {
         bot.execute(SendMessage(props.serviceAccountId, "I'm alive, version = ${System.getenv("HEROKU_RELEASE_VERSION")}"))

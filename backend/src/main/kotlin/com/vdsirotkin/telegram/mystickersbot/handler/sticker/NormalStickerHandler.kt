@@ -72,7 +72,7 @@ class NormalStickerHandler(
         return withTempFile(file) { webpFile ->
             val stickerFile = bot.executeAsync(GetFile().setFileId(sticker.fileId))
             bot.downloadFile(stickerFile, webpFile)
-            pngService.convertToPng(webpFile)
+            pngService.webpToPng(webpFile)
         }
     }
 

@@ -36,6 +36,8 @@ import kotlin.coroutines.resume
 const val MDC_CALL_ID = "callId"
 const val MDC_USER_ID = "userId"
 
+val DELETE_TEMP = System.getProperty("delete.temp", "true")!!.toBoolean()
+
 fun SendMessage.addInlineKeyboard(title: String, url: String): SendMessage {
     this.replyMarkup = InlineKeyboardMarkup(listOf(listOf(InlineKeyboardButton(title).setUrl(url))))
     return this
@@ -50,7 +52,7 @@ suspend fun execWithLog(command: String) {
     }
 }
 
-suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers.IO, delete: Boolean = true,
+suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers.IO,
                              block: suspend (File) -> T): T {
     return withContext(context) {
         val result = try {
@@ -58,15 +60,17 @@ suspend fun <T> withTempFile(file: File, context: CoroutineContext = Dispatchers
         } catch (e: Exception) {
             throw e
         } finally {
-            if (delete) { // for debugging only!!!!!!
+            if (DELETE_TEMP) {
                 file.delete()
+            } else {
+                loggerFor("withTempFile").info(file.absolutePath)
             }
         }
         result
     }
 }
 
-suspend fun <T> withTempFiles(file: Array<File>, context: CoroutineContext = Dispatchers.IO, delete: Boolean = true,
+suspend fun <T> withTempFiles(file: Array<File>, context: CoroutineContext = Dispatchers.IO,
                               block: suspend () -> T): T {
     return withContext(context) {
         val result = try {
@@ -74,8 +78,11 @@ suspend fun <T> withTempFiles(file: Array<File>, context: CoroutineContext = Dis
         } catch (e: Exception) {
             throw e
         } finally {
-            if (delete) { // for debugging only!!!!!!
+            if (DELETE_TEMP) {
                 file.forEach { it.delete() }
+            } else {
+                val logger = loggerFor("withTempFile")
+                file.forEach { logger.info(it.absolutePath) }
             }
         }
         result
