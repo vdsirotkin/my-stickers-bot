@@ -5,12 +5,14 @@ import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.HasElement
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.dependency.CssImport
+import com.vaadin.flow.component.page.Push
 import com.vaadin.flow.component.tabs.Tab
 import com.vaadin.flow.router.RouterLayout
 import com.vdsirotkin.telegram.mystickersbot.web.batch.ListMailingView
 
 @CssImport("./" +
         "styles/custom.css")
+@Push
 class MainLayout : KComposite(), RouterLayout {
 
     private val map: MutableMap<Tab, () -> Unit> = mutableMapOf()
