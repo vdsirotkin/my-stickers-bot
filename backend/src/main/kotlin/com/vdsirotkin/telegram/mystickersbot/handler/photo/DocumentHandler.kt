@@ -1,6 +1,7 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.photo
 
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
@@ -28,7 +29,7 @@ class DocumentHandler(override val stickerPackMessagesSender: StickerPackMessage
 
     override fun handleInternal(bot: DefaultAbsSender,
                                 update: Update,
-                                messageSource: MessageSourceWrapper): Mono<Unit> = mdcMono {
+                                messageSource: MessageSourceWrapper): Mono<BaseHandler> = mdcMono {
         val chatId = update.message.chatId
         bot.executeAsync(SendMessage(chatId, messageSource.getMessage("please.wait")))
         val document = update.message.document
@@ -39,8 +40,7 @@ class DocumentHandler(override val stickerPackMessagesSender: StickerPackMessage
             }
             else -> bot.executeAsync(SendMessage(chatId, messageSource.getMessage("document.not.supported")))
         }
-        return@mdcMono
-    }
+    }.thenReturn(this)
 
 
 }

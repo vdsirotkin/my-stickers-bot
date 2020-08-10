@@ -19,7 +19,7 @@ class SetLanguageHandler(
         private val stickerDAO: StickerDAO
 ) : BaseHandler {
 
-    override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> = mdcMono {
+    override fun handle(bot: DefaultAbsSender, update: Update): Mono<BaseHandler> = mdcMono {
         val chatId = update.callbackQuery.from.id.toLong()
         val selectedLanguage = update.callbackQuery.data.removePrefix(setLanguageCommandPrefix)
         stickerDAO.saveUserLanguage(chatId, selectedLanguage)
@@ -27,6 +27,6 @@ class SetLanguageHandler(
                 .setCallbackQueryId(update.callbackQuery.id)
                 .setText(messageSource.getMessage("success.chosen", null, Locale.forLanguageTag(selectedLanguage)))
         )
-    }.thenReturn(Unit)
+    }.thenReturn(this)
 
 }

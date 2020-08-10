@@ -16,10 +16,14 @@ class StickerDAO(
         private val template: ReactiveMongoTemplate
 ) {
 
-    suspend fun stickerExists(userId: Long, stickerId: String, isAnimated: Boolean): Boolean {
-        return template.findById(userId.toString(), UserEntity::class.java).awaitStrict().let {
+    suspend fun stickerExists(entity: UserEntity,
+                              sticker: Sticker,
+                              isAnimated: Boolean): Boolean {
+        val stickerPackContains = entity.let {
             if (isAnimated) it.animatedPackSet else it.normalPackSet
-        }.firstOrNull { it.fileId == stickerId }?.let { true } ?: false
+        }.firstOrNull { it.fileId == sticker.fileUniqueId }?.let { true } ?: false
+        val thisBotSticker = sticker.setName == if (isAnimated) entity.animatedPackName else entity.normalPackName
+        return stickerPackContains || thisBotSticker
     }
 
     suspend fun userRegistered(userId: Long): Boolean = template.exists(Query.query(Criteria.where("_id").`is`(userId.toString())), UserEntity::class.java).awaitStrict()

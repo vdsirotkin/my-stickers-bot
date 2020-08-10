@@ -1,5 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.handler
 
+import com.vdsirotkin.telegram.mystickersbot.handler.common.DeleteHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.common.StartHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.common.UnknownMessageHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.language.LanguageHandler
@@ -9,10 +10,14 @@ import com.vdsirotkin.telegram.mystickersbot.handler.photo.PhotoHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.sticker.AnimatedStickerHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.sticker.NormalStickerHandler
 import org.springframework.beans.factory.annotation.Lookup
+import org.springframework.context.ApplicationContext
 import org.springframework.stereotype.Service
+import kotlin.reflect.KClass
 
 @Service
-abstract class HandlerFactory {
+abstract class HandlerFactory(
+        private val applicationContext: ApplicationContext
+) {
 
     @get:Lookup
     abstract val startHandler: StartHandler
@@ -37,5 +42,10 @@ abstract class HandlerFactory {
 
     @get:Lookup
     abstract val documentHandler: DocumentHandler
+
+    @get:Lookup
+    abstract val deleteHandler: DeleteHandler
+
+    fun newHandler(kClass: KClass<out BaseHandler>): BaseHandler = applicationContext.getBean(kClass.java)
 
 }

@@ -15,10 +15,10 @@ interface LocalizedHandler : BaseHandler {
     val stickerDao: StickerDAO
     val messageSource: MessageSource
 
-    override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> = mdcMono {
+    override fun handle(bot: DefaultAbsSender, update: Update): Mono<BaseHandler> = mdcMono {
         loggerFor(LocalizedHandler::class.java).info("Executing ${this@LocalizedHandler.javaClass.name}")
         stickerDao.getUserEntity(update.message.chatId).locale
     }.flatMap { handleInternal(bot, update, MessageSourceWrapper(messageSource, it)) }
 
-    fun handleInternal(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper): Mono<Unit>
+    fun handleInternal(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper): Mono<BaseHandler>
 }

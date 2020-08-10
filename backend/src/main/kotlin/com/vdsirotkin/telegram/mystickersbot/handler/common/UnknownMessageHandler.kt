@@ -1,6 +1,7 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.common
 
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
@@ -18,10 +19,10 @@ class UnknownMessageHandler(override val stickerDao: StickerDAO,
                             override val messageSource: MessageSource) : LocalizedHandler {
 
     override fun handleInternal(bot: DefaultAbsSender, update: Update,
-                                messageSource: MessageSourceWrapper): Mono<Unit> = mdcMono {
+                                messageSource: MessageSourceWrapper): Mono<BaseHandler> = mdcMono {
         logger.info("Received some spam: ${update.message.text}")
         bot.executeAsync(SendMessage(update.message.chatId, messageSource.getMessage("unknown.text")))
-    }.thenReturn(Unit)
+    }.thenReturn(this)
 
     companion object : Loggable
 }

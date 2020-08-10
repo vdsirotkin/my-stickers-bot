@@ -24,18 +24,20 @@ class SearchUserView(
 
     private val root = ui {
         binder.bean = SearchUserInfo()
-        verticalLayout {
-            userId = textField("User id")
-            val button = button("Submit").apply {
-                addClickShortcut(Key.ENTER)
-                onLeftClick {
-                    handleSubmit(this@verticalLayout)
+        horizontalLayout {
+            verticalLayout {
+                userId = textField("User id")
+                val button = button("Submit").apply {
+                    addClickShortcut(Key.ENTER)
+                    onLeftClick {
+                        handleSubmit(this@verticalLayout)
+                    }
                 }
-            }
-            currentUserInfo = article {}
-            binder.forMemberField(userId).validateNotBlank().asRequired().bind(SearchUserInfo::userId)
-            binder.addStatusChangeListener {
-                button.isEnabled = !it.hasValidationErrors()
+                currentUserInfo = article {}
+                binder.forMemberField(userId).validateNotBlank().asRequired().bind(SearchUserInfo::userId)
+                binder.addStatusChangeListener {
+                    button.isEnabled = !it.hasValidationErrors()
+                }
             }
         }
     }

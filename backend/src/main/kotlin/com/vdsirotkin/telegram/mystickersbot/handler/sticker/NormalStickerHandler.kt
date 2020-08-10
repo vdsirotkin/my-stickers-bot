@@ -2,6 +2,7 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
+import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
@@ -34,13 +35,13 @@ class NormalStickerHandler(
         override val messageSource: MessageSource
 ) : LocalizedHandler {
 
-    override fun handleInternal(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper): Mono<Unit> {
+    override fun handleInternal(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper): Mono<BaseHandler> {
         val chatId = update.message!!.chat.id
         return mdcMono {
             val entity = dao.getUserEntity(chatId)
             val messageId = update.message!!.messageId
             val sticker = update.message!!.sticker!!
-            if (dao.stickerExists(chatId, sticker.fileUniqueId, false)) {
+            if (dao.stickerExists(entity, sticker, false)) {
                 bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).setReplyToMessageId(update.message!!.messageId))
                 return@mdcMono
             }
@@ -63,7 +64,7 @@ class NormalStickerHandler(
             } catch (e: Exception) {
                 throw e
             }
-        }.thenReturn(Unit)
+        }.thenReturn(this)
     }
 
     private suspend fun preparePngFile(bot: DefaultAbsSender,

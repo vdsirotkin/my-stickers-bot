@@ -5,6 +5,8 @@ import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.HasElement
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.dependency.CssImport
+import com.vaadin.flow.component.orderedlayout.FlexComponent
+import com.vaadin.flow.component.orderedlayout.VerticalLayout
 import com.vaadin.flow.component.page.Push
 import com.vaadin.flow.component.tabs.Tab
 import com.vaadin.flow.router.RouterLayout
@@ -15,10 +17,12 @@ import com.vdsirotkin.telegram.mystickersbot.web.batch.ListMailingView
 @Push
 class MainLayout : KComposite(), RouterLayout {
 
+    private lateinit var layout: VerticalLayout
     private val map: MutableMap<Tab, () -> Unit> = mutableMapOf()
 
     private val root = ui {
-        verticalLayout {
+        layout = verticalLayout {
+            alignItems = FlexComponent.Alignment.CENTER
             horizontalLayout {
                 tabs {
                     tab("Search") {
@@ -35,9 +39,10 @@ class MainLayout : KComposite(), RouterLayout {
                 }
             }
         }
+        layout
     }
 
     override fun showRouterLayoutContent(content: HasElement?) {
-        root.add(content as Component)
+        layout.add(content as Component)
     }
 }

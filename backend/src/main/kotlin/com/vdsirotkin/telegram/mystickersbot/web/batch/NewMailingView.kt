@@ -24,21 +24,23 @@ class NewMailingView(
 
     private val root = ui {
         binder.bean = SendBatchMessageRequest()
-        verticalLayout {
-            name = textField("Name")
-            text = textArea("Message")
-            horizontalLayout {
-                content { align(between, top) }
-                button("Send") {
-                    onLeftClick { handleBatchSend() }
-                    setPrimary()
+        horizontalLayout {
+            verticalLayout {
+                name = textField("Name")
+                text = textArea("Message")
+                horizontalLayout {
+                    content { align(between, top) }
+                    button("Send") {
+                        onLeftClick { handleBatchSend() }
+                        setPrimary()
+                    }
+                    button("Back") {
+                        onLeftClick { ui.ifPresent { it.navigate(ListMailingView::class.java) } }
+                    }
                 }
-                button("Back") {
-                    onLeftClick { ui.ifPresent { it.navigate(ListMailingView::class.java) } }
-                }
+                binder.forMemberField(name).asRequired().bind(SendBatchMessageRequest::name)
+                binder.forMemberField(text).asRequired().bind(SendBatchMessageRequest::text)
             }
-            binder.forMemberField(name).asRequired().bind(SendBatchMessageRequest::name)
-            binder.forMemberField(text).asRequired().bind(SendBatchMessageRequest::text)
         }
     }
 

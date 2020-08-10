@@ -20,14 +20,14 @@ class LanguageHandler(
         private val messageSource: MessageSource
 ) : BaseHandler {
 
-    override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> {
+    override fun handle(bot: DefaultAbsSender, update: Update): Mono<BaseHandler> {
         return mdcMono {
             val message = messageSource.getMessage("choose.language", emptyArray(), Locale.ENGLISH)
             bot.executeAsync(SendMessage(update.message!!.chatId, message)
                     .setReplyMarkup(InlineKeyboardMarkup(listOf(availableLocales.map {
                         InlineKeyboardButton(it.name).apply { callbackData = "$setLanguageCommandPrefix${it.code}" }
                     }))))
-        }.thenReturn(Unit)
+        }.thenReturn(this)
     }
 
     data class LanguageInfo(val name: String, val code: String)

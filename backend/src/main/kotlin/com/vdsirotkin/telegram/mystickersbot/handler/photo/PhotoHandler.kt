@@ -1,6 +1,7 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.photo
 
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
@@ -27,7 +28,7 @@ class PhotoHandler(override val stickerPackMessagesSender: StickerPackMessagesSe
 
     override fun handleInternal(bot: DefaultAbsSender,
                                 update: Update,
-                                messageSource: MessageSourceWrapper): Mono<Unit> = mdcMono {
+                                messageSource: MessageSourceWrapper): Mono<BaseHandler> = mdcMono {
         val chatId = update.message.chatId
         bot.executeAsync(SendMessage(chatId, messageSource.getMessage("please.wait")))
         val entity = stickerDao.getUserEntity(chatId)
@@ -36,7 +37,7 @@ class PhotoHandler(override val stickerPackMessagesSender: StickerPackMessagesSe
         val photo = photos.maxBy { it.fileSize }!!
         logger.info("Selected photo: $photo")
         processPhoto(bot, photo.fileId, entity, chatId, update.message.messageId, messageSource)
-    }.thenReturn(Unit)
+    }.thenReturn(this)
 
     companion object : Loggable
 

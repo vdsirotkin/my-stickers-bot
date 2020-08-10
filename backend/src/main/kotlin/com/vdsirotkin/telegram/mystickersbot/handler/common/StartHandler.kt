@@ -21,7 +21,7 @@ class StartHandler(
         private val botConfigProps: BotConfigProps
 ) : BaseHandler {
 
-    override fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit> {
+    override fun handle(bot: DefaultAbsSender, update: Update): Mono<BaseHandler> {
         val chatId = update.message!!.chat.id
         val normalPackName = "def_stckr_${chatId}_by_${botConfigProps.username}"
         val animatedPackName = "anim_stckr_${chatId}_by_${botConfigProps.username}"
@@ -33,7 +33,7 @@ class StartHandler(
                 logger.warn("User already registered")
             }
             bot.executeAsync(SendMessage(chatId, messageSource.getMessage("welcome", null, Locale.ENGLISH)))
-        }.thenReturn(Unit)
+        }.thenReturn(this)
     }
 
     companion object : Loggable

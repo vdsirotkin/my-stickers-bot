@@ -2,6 +2,7 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.util.*
@@ -30,13 +31,13 @@ class AnimatedStickerHandler(
 ) : LocalizedHandler {
 
     override fun handleInternal(bot: DefaultAbsSender, update: Update,
-                                messageSource: MessageSourceWrapper): Mono<Unit> = mdcMono {
+                                messageSource: MessageSourceWrapper): Mono<BaseHandler> = mdcMono {
         val chatId = update.message!!.chat.id
         val sticker = update.message!!.sticker!!
         logger.info(sticker.toString())
 
         val entity = dao.getUserEntity(chatId)
-        if (dao.stickerExists(chatId, sticker.fileUniqueId, true)) {
+        if (dao.stickerExists(entity, sticker, true)) {
             bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).setReplyToMessageId(update.message!!.messageId))
             return@mdcMono
         }
@@ -72,7 +73,7 @@ class AnimatedStickerHandler(
             )
         }
         dao.saveSticker(chatId, sticker, true)
-    }.thenReturn(Unit)
+    }.thenReturn(this)
 
     private suspend fun getStickerFile(bot: DefaultAbsSender,
                                        sticker: Sticker): File {

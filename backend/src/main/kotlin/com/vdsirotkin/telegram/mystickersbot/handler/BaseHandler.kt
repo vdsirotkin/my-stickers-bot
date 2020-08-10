@@ -8,6 +8,6 @@ import reactor.core.publisher.Mono
 @FunctionalInterface
 interface BaseHandler {
 
-    fun handle(bot: DefaultAbsSender, update: Update): Mono<Unit>
+    fun handle(bot: DefaultAbsSender, update: Update): Mono<BaseHandler>
 
 }
