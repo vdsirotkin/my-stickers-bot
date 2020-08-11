@@ -54,7 +54,7 @@ class AnimatedStickerHandler(
             bot.executeAsync(
                     SendMessage(chatId, messageSource.getMessage("sticker.added"))
                             .setReplyToMessageId(update.message!!.messageId)
-                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), "https://t.me/addstickers/${entity.animatedPackName}")
+                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), packLink(entity.animatedPackName))
             )
         } else {
             optimizeIfNecessary(stickerFile) {
@@ -69,7 +69,7 @@ class AnimatedStickerHandler(
             bot.executeAsync(
                     SendMessage(chatId, messageSource.getMessage("created.pack"))
                             .setReplyToMessageId(update.message!!.messageId)
-                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), "https://t.me/addstickers/${entity.animatedPackName}")
+                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), packLink(entity.animatedPackName))
             )
         }
         dao.saveSticker(chatId, sticker, true)
