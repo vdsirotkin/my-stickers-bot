@@ -32,8 +32,8 @@ class ResilienceConfig {
     @Bean
     fun rateLimiter(): RateLimiter {
         return RateLimiter.of("telegram_api", RateLimiterConfig.custom()
-                .limitForPeriod(30)
-                .limitRefreshPeriod(ofSeconds(2))
+                .limitForPeriod(27)
+                .limitRefreshPeriod(ofSeconds(1))
                 .timeoutDuration(Duration.ofHours(3))
                 .build())
     }
