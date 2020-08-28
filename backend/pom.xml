@@ -15,7 +15,7 @@
     <description>My stickers bot</description>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>11</java.version>
         <vaadin.productionMode>true</vaadin.productionMode>
         <vaadin.version>14.3.0</vaadin.version>
     </properties>
