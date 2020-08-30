@@ -9,12 +9,10 @@ import com.vdsirotkin.telegram.mystickersbot.util.*
 import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.DefaultAbsSender
-import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
 import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
 import org.telegram.telegrambots.meta.api.objects.Update
-import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
 import java.io.File
@@ -75,13 +73,6 @@ class AnimatedStickerHandler(
         dao.saveSticker(chatId, sticker, true)
     }.thenReturn(this)
 
-    private suspend fun getStickerFile(bot: DefaultAbsSender,
-                                       sticker: Sticker): File {
-        val file = bot.executeAsync(GetFile().setFileId(sticker.fileId))
-        logger.info(file.toString())
-        return bot.downloadFileAsync(file.filePath)
-    }
-
     private suspend fun optimizeIfNecessary(originalFile: File, block: suspend (File) -> Unit) {
         withTempFile(originalFile) {
             // step one - try naive way (handles most of cases actually)
@@ -90,11 +81,11 @@ class AnimatedStickerHandler(
             logDebug("First step for animated sticker failed! Trying second way")
 
             // step two - optimize with lottie (python, bruh)
-            val tempOriginalPath = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".tgs")
+            val tempOriginalPath = Files.createTempFile(TEMP_FILE_PREFIX, TGS_SUFFIX)
             Files.copy(originalFile.toPath(), tempOriginalPath, StandardCopyOption.REPLACE_EXISTING)
-            val tempJsonFile = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".json").toFile()
+            val tempJsonFile = Files.createTempFile(TEMP_FILE_PREFIX, ".json").toFile()
             val tempOriginalFile = tempOriginalPath.toFile()
-            val newTgsFilePath = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".tgs")
+            val newTgsFilePath = Files.createTempFile(TEMP_FILE_PREFIX, TGS_SUFFIX)
             val newTgsFileAbsolutePath = newTgsFilePath.toFile().absolutePath
             Files.delete(newTgsFilePath)
             withTempFiles(arrayOf(tempJsonFile, tempOriginalFile)) {

@@ -47,9 +47,10 @@ class SecurityConfiguration : WebSecurityConfigurerAdapter() {
     }
 
     companion object {
-        private const val LOGIN_PROCESSING_URL = "/login"
-        private const val LOGIN_FAILURE_URL = "/login?error"
-        private const val LOGIN_URL = "/login"
-        private const val LOGOUT_SUCCESS_URL = "/login"
+        private const val LOGIN = "/login"
+        private const val LOGIN_PROCESSING_URL = LOGIN
+        private const val LOGIN_FAILURE_URL = "$LOGIN?error"
+        private const val LOGIN_URL = LOGIN
+        private const val LOGOUT_SUCCESS_URL = LOGIN
     }
 }

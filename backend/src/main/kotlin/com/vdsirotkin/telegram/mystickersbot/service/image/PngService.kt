@@ -1,6 +1,8 @@
 package com.vdsirotkin.telegram.mystickersbot.service.image
 
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
+import com.vdsirotkin.telegram.mystickersbot.util.PNG_SUFFIX
+import com.vdsirotkin.telegram.mystickersbot.util.TEMP_FILE_PREFIX
 import io.github.biezhi.webp.WebpIO
 import org.springframework.stereotype.Service
 import ru.sokomishalov.commons.core.log.Loggable
@@ -28,7 +30,7 @@ class PngService {
      * @throws com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException when some IO exception occurres or can't fit telegram limitations
      */
     fun webpToPng(webpFile: File): File {
-        val pngFilePath = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".png")
+        val pngFilePath = Files.createTempFile(TEMP_FILE_PREFIX, PNG_SUFFIX)
         val pngFile = pngFilePath.toFile()
         WebpIO.create().toNormalImage(webpFile, pngFile)
         if (tooBigSize(pngFilePath)) {
