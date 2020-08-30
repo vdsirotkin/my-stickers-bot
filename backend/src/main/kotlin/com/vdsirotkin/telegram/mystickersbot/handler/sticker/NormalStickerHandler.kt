@@ -7,10 +7,7 @@ import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.service.image.PngService
-import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
-import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
-import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
-import com.vdsirotkin.telegram.mystickersbot.util.withTempFile
+import com.vdsirotkin.telegram.mystickersbot.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.context.MessageSource
@@ -69,7 +66,7 @@ class NormalStickerHandler(
 
     private suspend fun preparePngFile(bot: DefaultAbsSender,
                                        sticker: Sticker): File {
-        val file = withContext(Dispatchers.IO) { Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".webp").toFile() }
+        val file = withContext(Dispatchers.IO) { Files.createTempFile(TEMP_FILE_PREFIX, ".webp").toFile() }
         return withTempFile(file) { webpFile ->
             val stickerFile = bot.executeAsync(GetFile().setFileId(sticker.fileId))
             bot.downloadFile(stickerFile, webpFile)

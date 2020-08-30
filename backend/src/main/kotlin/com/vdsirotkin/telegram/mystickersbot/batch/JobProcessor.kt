@@ -6,13 +6,12 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.UserStatus
 import com.vdsirotkin.telegram.mystickersbot.util.MDC_USER_ID
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import org.slf4j.MDC
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
+import ru.sokomishalov.commons.core.collections.aMap
 import ru.sokomishalov.commons.core.log.Loggable
 
 @Service
@@ -30,27 +29,29 @@ class JobProcessor(
                 finished = true
                 jobManager.stopJob(jobId)
             }
-            nextBatch.map {
-                async {
-                    val result = runCatching {
-                        bot.executeAsync(SendMessage(it, text).enableHtml(true))
-                    }
-                    if (result.isSuccess) {
-                        it to BatchJobStatus.SUCCESS
-                    } else {
-                        val e = result.exceptionOrNull()!!
-                        MDC.put(MDC_USER_ID, it.toString())
-                        if (e is TelegramApiRequestException) {
-                            logger.warn("Can't send to user $it, message: ${e.message}, result: ${e.apiResponse}, errorCode: ${e.errorCode}")
-                        } else {
-                            logger.warn("Can't send to user $it, message: ${e.message}", e)
-                        }
-                        MDC.clear()
-                        it to BatchJobStatus.ERROR
-                    }
+            nextBatch.aMap { chatId: Long ->
+                val result = runCatching {
+                    bot.executeAsync(SendMessage(chatId, text).enableHtml(true))
                 }
-            }.awaitAll().map { UserStatus(it.first, it.second) }
+                if (result.isSuccess) {
+                    chatId to BatchJobStatus.SUCCESS
+                } else {
+                    val e = result.exceptionOrNull()!!
+                    MDC.put(MDC_USER_ID, chatId.toString())
+                    logException(e, chatId)
+                    MDC.clear()
+                    chatId to BatchJobStatus.ERROR
+                }
+            }.map { UserStatus(it.first, it.second) }
                     .also { jobManager.finishBatch(jobId, it) }
+        }
+    }
+
+    private fun logException(e: Throwable, it: Long) {
+        if (e is TelegramApiRequestException) {
+            logger.warn("Can't send to user $it, message: ${e.message}, result: ${e.apiResponse}, errorCode: ${e.errorCode}")
+        } else {
+            logger.warn("Can't send to user $it, message: ${e.message}", e)
         }
     }
 

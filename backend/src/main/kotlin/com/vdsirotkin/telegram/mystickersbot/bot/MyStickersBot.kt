@@ -37,11 +37,7 @@ class MyStickersBot(
     private val handlerStateMap: MutableMap<Long, HandlerState<*>> = mutableMapOf()
 
     override fun onUpdateReceived(update: Update) {
-        val chatId = when {
-            update.hasMessage() -> update.message.chatId
-            update.hasCallbackQuery() -> update.callbackQuery.from.id.toLong()
-            else -> throw IllegalArgumentException("Unsupported message type")
-        }
+        val chatId = determineChatId(update)
         if (update.message?.text == "/cancel") {
             handleCancel(chatId)
             return
@@ -73,21 +69,34 @@ class MyStickersBot(
                     }
                 }
                 .doOnEach {
-                    if (it.isOnError) {
-                        it.context.resolveMdc()
-                        val t = it.throwable!!
-                        if (t is TelegramApiRequestException) {
-                            logger.error("Telegram api error: ${t.apiResponse}, code: ${t.errorCode}", t)
-                        } else {
-                            logger.error("Error occurred, message: ${t.message}", t)
-                        }
-                        sendErrorMessagesAsync(chatId, MDC.get(MDC_CALL_ID))
-                        MDC.clear()
-                    }
+                    if (!it.isOnError) return@doOnEach
+
+                    it.context.resolveMdc()
+                    val t = it.throwable!!
+                    logException(t)
+                    sendErrorMessagesAsync(chatId, MDC.get(MDC_CALL_ID))
+                    MDC.clear()
+
                 }.subscriberContext {
                     it.put(MDC_CALL_ID, UUID.randomUUID().toString())
                             .put(MDC_USER_ID, chatId.toString())
                 }.subscribe()
+    }
+
+    private fun logException(t: Throwable) {
+        if (t is TelegramApiRequestException) {
+            logger.error("Telegram api error: ${t.apiResponse}, code: ${t.errorCode}", t)
+        } else {
+            logger.error("Error occurred, message: ${t.message}", t)
+        }
+    }
+
+    private fun determineChatId(update: Update): Long {
+        return when {
+            update.hasMessage() -> update.message.chatId
+            update.hasCallbackQuery() -> update.callbackQuery.from.id.toLong()
+            else -> throw IllegalArgumentException("Unsupported message type")
+        }
     }
 
     private fun handleCancel(chatId: Long) {
@@ -105,6 +114,7 @@ class MyStickersBot(
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun prepareStatefulHandler(chatId: Long): BaseHandler {
         val state = handlerStateMap[chatId]!!
         return (handlerFactory.newHandler(Class.forName(state.kclass).kotlin as KClass<out BaseHandler>) as StatefulHandler<Any>).apply {

@@ -1,6 +1,8 @@
 package com.vdsirotkin.telegram.mystickersbot.service.image
 
 import com.vdsirotkin.telegram.mystickersbot.handler.photo.PhotoHandler
+import com.vdsirotkin.telegram.mystickersbot.util.PNG_SUFFIX
+import com.vdsirotkin.telegram.mystickersbot.util.TEMP_FILE_PREFIX
 import com.vdsirotkin.telegram.mystickersbot.util.withTempFile
 import net.coobird.thumbnailator.Thumbnails
 import org.apache.commons.imaging.Imaging
@@ -25,7 +27,7 @@ class ImageResizer(
         if (((width == 512 && height <= 512) || (height == 512 && width <= 512)) && metadata.mimeType == MIME_PNG) {
             return file // already ok
         }
-        val newImage = Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".png").toFile()
+        val newImage = Files.createTempFile(TEMP_FILE_PREFIX, PNG_SUFFIX).toFile()
         val dimensions = when {
             height > width -> { // vertical
                 val newHeight = 512
@@ -49,7 +51,7 @@ class ImageResizer(
         PhotoHandler.logger.info("Old dimensions: w$width,h$height, new dimesions: w$newWidth,h$newHeight")
         Thumbnails.of(file).forceSize(newWidth, newHeight).toFile(newImage)
         if (newImage.length() > 510) {
-            withTempFile(Files.createTempFile("com.vdsirotkin.telegram.mystickersbot-", ".jpg").toFile()) { newJpgImage ->
+            withTempFile(Files.createTempFile(TEMP_FILE_PREFIX, ".jpg").toFile()) { newJpgImage ->
                 Thumbnails.of(file).forceSize(newWidth, newHeight).outputFormat("jpg").toFile(newJpgImage)
                 pngService.jpegToPng(newJpgImage, newImage)
             }
