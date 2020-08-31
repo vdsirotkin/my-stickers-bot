@@ -70,19 +70,7 @@ class NormalStickerHandlerTest {
 
     @Test
     fun `test scenario with normal sticker`() = runBlocking {
-        val update = mockkClass(Update::class) upd@{
-            val message = mockkClass(Message::class) msg@{
-                val sticker = mockkClass(Sticker::class) stc@{
-                    every { this@stc.emoji } returns "😀"
-                    every { this@stc.fileId } returns ""
-                    every { this@stc.fileUniqueId } returns ""
-                }
-                every { this@msg.sticker } returns sticker
-                every { this@msg.chatId } returns CHAT_ID
-                every { this@msg.messageId } returns MESSAGE_ID
-            }
-            every { this@upd.message } returns message
-        }
+        val update = buildStickerUpdate()
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
         verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
@@ -93,19 +81,7 @@ class NormalStickerHandlerTest {
     fun `test scenario with normal sticker and existing pack`() = runBlocking {
         setupDao(true)
 
-        val update = mockkClass(Update::class) upd@{
-            val message = mockkClass(Message::class) msg@{
-                val sticker = mockkClass(Sticker::class) stc@{
-                    every { this@stc.emoji } returns "😀"
-                    every { this@stc.fileId } returns ""
-                    every { this@stc.fileUniqueId } returns ""
-                }
-                every { this@msg.sticker } returns sticker
-                every { this@msg.chatId } returns CHAT_ID
-                every { this@msg.messageId } returns MESSAGE_ID
-            }
-            every { this@upd.message } returns message
-        }
+        val update = buildStickerUpdate()
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
         verify(exactly = 1) { bot.execute(any<AddStickerToSet>()) }
@@ -116,19 +92,7 @@ class NormalStickerHandlerTest {
     fun `test scenario with existing sticker`() = runBlocking {
         setupDao(stickerExists = true)
 
-        val update = mockkClass(Update::class) upd@{
-            val message = mockkClass(Message::class) msg@{
-                val sticker = mockkClass(Sticker::class) stc@{
-                    every { this@stc.emoji } returns "😀"
-                    every { this@stc.fileId } returns ""
-                    every { this@stc.fileUniqueId } returns ""
-                }
-                every { this@msg.sticker } returns sticker
-                every { this@msg.chatId } returns CHAT_ID
-                every { this@msg.messageId } returns MESSAGE_ID
-            }
-            every { this@upd.message } returns message
-        }
+        val update = buildStickerUpdate()
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
         verify(exactly = 1) { bot.executeAsync(any<SendMessage>(), any()) }
@@ -136,30 +100,10 @@ class NormalStickerHandlerTest {
 
     @Test
     fun `test scenario with no-emoji sticker`() = runBlocking {
-        val update = mockkClass(Update::class) upd@{
-            val message = mockkClass(Message::class) msg@{
-                val sticker = mockkClass(Sticker::class) stc@{
-                    every { this@stc.emoji } returns null
-                    every { this@stc.fileId } returns ""
-                    every { this@stc.fileUniqueId } returns ""
-                }
-                every { this@msg.sticker } returns sticker
-                every { this@msg.chatId } returns CHAT_ID
-                every { this@msg.messageId } returns MESSAGE_ID
-            }
-            every { this@upd.message } returns message
-        }
+        val update = buildStickerUpdate(null)
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
-        val update2 = mockkClass(Update::class) upd@{
-            val message = mockkClass(Message::class) msg@{
-                every { this@msg.text } returns "😀"
-                every { this@msg.hasText() } returns true
-                every { this@msg.chatId } returns CHAT_ID
-                every { this@msg.messageId } returns MESSAGE_ID
-            }
-            every { this@upd.message } returns message
-        }
+        val update2 = buildTextUpdate()
         normalStickerHandler.handle(bot, update2).fillMdc(CHAT_ID).awaitStrict()
 
         verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
@@ -168,10 +112,35 @@ class NormalStickerHandlerTest {
 
     @Test
     fun `test scenario with no-emoji sticker and broken text`() = runBlocking {
-        val update = mockkClass(Update::class) upd@{
+        val update = buildStickerUpdate(null)
+        normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
+
+        val update2 = buildTextUpdate("asdfasdf")
+        normalStickerHandler.handle(bot, update2).fillMdc(CHAT_ID).awaitStrict()
+        val update3 = buildTextUpdate()
+        normalStickerHandler.handle(bot, update3).fillMdc(CHAT_ID).awaitStrict()
+
+        verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
+        verify(exactly = 4) { bot.executeAsync(any<SendMessage>(), any()) }
+    }.unit()
+
+    private fun buildTextUpdate(text: String? = "😀"): Update {
+        return mockkClass(Update::class) upd@{
+            val message = mockkClass(Message::class) msg@{
+                every { this@msg.text } returns text
+                every { this@msg.hasText() } returns true
+                every { this@msg.chatId } returns CHAT_ID
+                every { this@msg.messageId } returns MESSAGE_ID
+            }
+            every { this@upd.message } returns message
+        }
+    }
+
+    private fun buildStickerUpdate(emoji: String? = "😀"): Update {
+        return mockkClass(Update::class) upd@{
             val message = mockkClass(Message::class) msg@{
                 val sticker = mockkClass(Sticker::class) stc@{
-                    every { this@stc.emoji } returns null
+                    every { this@stc.emoji } returns emoji
                     every { this@stc.fileId } returns ""
                     every { this@stc.fileUniqueId } returns ""
                 }
@@ -181,32 +150,7 @@ class NormalStickerHandlerTest {
             }
             every { this@upd.message } returns message
         }
-        normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
-
-        val update2 = mockkClass(Update::class) upd@{
-            val message = mockkClass(Message::class) msg@{
-                every { this@msg.text } returns "asdfasdf"
-                every { this@msg.hasText() } returns true
-                every { this@msg.chatId } returns CHAT_ID
-                every { this@msg.messageId } returns MESSAGE_ID
-            }
-            every { this@upd.message } returns message
-        }
-        normalStickerHandler.handle(bot, update2).fillMdc(CHAT_ID).awaitStrict()
-        val update3 = mockkClass(Update::class) upd@{
-            val message = mockkClass(Message::class) msg@{
-                every { this@msg.text } returns "😀"
-                every { this@msg.hasText() } returns true
-                every { this@msg.chatId } returns CHAT_ID
-                every { this@msg.messageId } returns MESSAGE_ID
-            }
-            every { this@upd.message } returns message
-        }
-        normalStickerHandler.handle(bot, update3).fillMdc(CHAT_ID).awaitStrict()
-
-        verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
-        verify(exactly = 4) { bot.executeAsync(any<SendMessage>(), any()) }
-    }.unit()
+    }
 
     private fun setupDao(normalPackCreated: Boolean = false, stickerExists: Boolean = false) {
         val entity = buildDefaultEntity(normalPackCreated)
