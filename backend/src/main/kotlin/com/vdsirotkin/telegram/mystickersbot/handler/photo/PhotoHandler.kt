@@ -34,7 +34,7 @@ class PhotoHandler(override val stickerPackMessagesSender: StickerPackMessagesSe
         val entity = stickerDao.getUserEntity(chatId)
         val photos = update.message.photo
         logger.info("Received photos: $photos")
-        val photo = photos.maxBy { it.fileSize }!!
+        val photo = photos.maxByOrNull { it.fileSize }!!
         logger.info("Selected photo: $photo")
         processPhoto(bot, photo.fileId, entity, chatId, update.message.messageId, messageSource)
     }.thenReturn(this)

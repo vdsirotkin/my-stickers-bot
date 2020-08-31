@@ -1,6 +1,7 @@
 package com.vdsirotkin.telegram.mystickersbot.db
 
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
+import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.findById
 import org.springframework.data.mongodb.core.query.Criteria
@@ -59,7 +60,7 @@ class StickerDAO(
         return template.count(Query(), UserEntity::class.java).await()?.toInt() ?: 0
     }
 
-    suspend fun saveSticker(chatId: Long, sticker: Sticker, isAnimated: Boolean) {
+    suspend fun saveSticker(chatId: Long, sticker: StickerMeta, isAnimated: Boolean) {
         return template.findById(chatId.toString(), UserEntity::class.java)
                 .doOnNext {
                     val set = if(isAnimated) it.animatedPackSet else it.normalPackSet

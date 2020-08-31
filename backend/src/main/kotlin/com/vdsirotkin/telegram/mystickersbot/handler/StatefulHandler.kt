@@ -2,10 +2,10 @@ package com.vdsirotkin.telegram.mystickersbot.handler
 
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 
-interface StatefulHandler<T> : BaseHandler {
+interface StatefulHandler<DATA> : BaseHandler {
 
-    fun getState(): HandlerState<T>
+    fun getState(): HandlerState<DATA>
 
-    fun setState(state: HandlerState<T>)
+    fun setState(state: HandlerState<DATA>)
 
 }
