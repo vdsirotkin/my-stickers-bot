@@ -17,6 +17,7 @@ import io.github.resilience4j.retry.RetryConfig
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.context.MessageSource
 import org.telegram.telegrambots.meta.api.methods.GetFile
@@ -69,7 +70,8 @@ class NormalStickerHandlerTest {
     }
 
     @Test
-    fun `test scenario with normal sticker`() = runBlocking {
+    @DisplayName("test scenario with normal sticker")
+    fun testScenarioWithNormalSticker() = runBlocking {
         val update = buildStickerUpdate()
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
@@ -78,7 +80,8 @@ class NormalStickerHandlerTest {
     }.unit()
 
     @Test
-    fun `test scenario with normal sticker and existing pack`() = runBlocking {
+    @DisplayName("test scenario with normal sticker and existing pack")
+    fun testScenarioWithNormalStickerAndExistingPack() = runBlocking {
         setupDao(true)
 
         val update = buildStickerUpdate()
@@ -89,7 +92,8 @@ class NormalStickerHandlerTest {
     }.unit()
 
     @Test
-    fun `test scenario with existing sticker`() = runBlocking {
+    @DisplayName("test scenario with existing sticker")
+    fun testScenarioWithExistingSticker() = runBlocking {
         setupDao(stickerExists = true)
 
         val update = buildStickerUpdate()
@@ -99,7 +103,8 @@ class NormalStickerHandlerTest {
     }.unit()
 
     @Test
-    fun `test scenario with no-emoji sticker`() = runBlocking {
+    @DisplayName("test scenario with no-emoji sticker")
+    fun testScenarioWithNoEmojiSticker() = runBlocking {
         val update = buildStickerUpdate(null)
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
@@ -111,7 +116,8 @@ class NormalStickerHandlerTest {
     }.unit()
 
     @Test
-    fun `test scenario with no-emoji sticker and broken text`() = runBlocking {
+    @DisplayName("test scenario with no-emoji sticker and broken text")
+    fun testScenarioWithNoEmojiStickerAndBrokenText() = runBlocking {
         val update = buildStickerUpdate(null)
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
