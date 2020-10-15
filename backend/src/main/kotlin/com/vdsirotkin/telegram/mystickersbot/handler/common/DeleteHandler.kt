@@ -29,26 +29,28 @@ class DeleteHandler(
 
     private var state: DeleteHandlerState = DeleteHandlerState(NEW, false)
 
-    override fun handleInternal(bot: DefaultAbsSender, update: Update,
-                                messageSource: MessageSourceWrapper): Mono<BaseHandler> = mdcMono {
+    override fun handleInternal(
+            bot: DefaultAbsSender, update: Update,
+            messageSource: MessageSourceWrapper,
+            userEntity: UserEntity
+    ): Mono<BaseHandler> = mdcMono {
         val chatId = update.message.chatId
-        val entity = stickerDao.getUserEntity(chatId)
         when (state.data) {
             NEW -> {
-                bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.start")).addKeyboard(entity, messageSource))
+                bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.start")).addKeyboard(userEntity, messageSource))
                 state = state.copy(data = PROCESSING)
             }
             PROCESSING -> {
                 if (update.message.hasSticker()) {
                     val sticker = update.message.sticker
                     val animated = sticker.animated
-                    val packName = if (animated) entity.animatedPackName else entity.normalPackName
+                    val packName = if (animated) userEntity.animatedPackName else userEntity.normalPackName
                     if (sticker.setName == packName) {
                         bot.executeStickerPackAction(DeleteStickerFromSet(sticker.fileId))
                         bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.success")).setReplyToMessageId(update.message.messageId))
                         state = state.copy(finished = true)
                     } else {
-                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.not.my.sticker")).addKeyboard(entity, messageSource))
+                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.not.my.sticker")).addKeyboard(userEntity, messageSource))
                     }
                 } else {
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.please.send.sticker")))

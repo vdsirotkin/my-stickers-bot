@@ -45,6 +45,7 @@ class MyStickersBot(
         val handler: BaseHandler = when {
             update.hasCallbackQuery() -> when {
                 update.callbackQuery.data.contains(setLanguageCommandPrefix) -> handlerFactory.setLanguageHandler
+                update.callbackQuery.data.startsWith(chooseEmoji) -> processEmojiQuery(chatId)
                 else -> handlerFactory.unknownMessageHandler
             }
             handlerStateMap.containsKey(chatId) -> prepareStatefulHandler(chatId)
@@ -89,19 +90,19 @@ class MyStickersBot(
                 }.subscribe()
     }
 
+    private fun processEmojiQuery(chatId: Long): BaseHandler {
+        return if (handlerStateMap.containsKey(chatId)) {
+            prepareStatefulHandler(chatId)
+        } else {
+            handlerFactory.unknownMessageHandler
+        }
+    }
+
     private fun logException(t: Throwable) {
         if (t is TelegramApiRequestException) {
             logger.error("Telegram api error: ${t.apiResponse}, code: ${t.errorCode}", t)
         } else {
             logger.error("Error occurred, message: ${t.message}", t)
-        }
-    }
-
-    private fun determineChatId(update: Update): Long {
-        return when {
-            update.hasMessage() -> update.message.chatId
-            update.hasCallbackQuery() -> update.callbackQuery.from.id.toLong()
-            else -> throw IllegalArgumentException("Unsupported message type")
         }
     }
 

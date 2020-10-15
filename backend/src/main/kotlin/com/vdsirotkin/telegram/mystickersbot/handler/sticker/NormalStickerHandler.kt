@@ -40,17 +40,19 @@ class NormalStickerHandler(
 
     private var state: NormalStickerHandlerState = NormalStickerHandlerState(HandlerStateData(State.NEW), false)
 
-    override fun handleInternal(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper): Mono<BaseHandler> = mdcMono {
+    override fun handleInternal(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper,
+                                userEntity: UserEntity): Mono<BaseHandler> = mdcMono {
         val chatId = update.message!!.chatId
-        runStateMachine(chatId, update, bot, messageSource)
+        runStateMachine(chatId, update, bot, messageSource, userEntity)
     }.thenReturn(this)
 
     private suspend fun runStateMachine(
             chatId: Long,
             update: Update,
             bot: DefaultAbsSender,
-            messageSource: MessageSourceWrapper) {
-        val entity = stickerDao.getUserEntity(chatId)
+            messageSource: MessageSourceWrapper,
+            entity: UserEntity
+    ) {
         val messageId = update.message!!.messageId
         when (state.data.state) {
             State.NEW -> {
@@ -65,7 +67,7 @@ class NormalStickerHandler(
                     state = state.toEmojiRequired(StickerMeta(sticker.fileId, sticker.fileUniqueId))
                 } else {
                     state = state.toAllDone(StickerMeta(sticker.fileId, sticker.fileUniqueId, sticker.emoji))
-                    runStateMachine(chatId, update, bot, messageSource)
+                    runStateMachine(chatId, update, bot, messageSource, entity)
                 }
             }
             State.EMOJI_REQUIRED -> {
@@ -77,7 +79,7 @@ class NormalStickerHandler(
                     }
                     val emojiStr = emojis.joinToString()
                     state = state.toAllDone(state.data.stickerMeta!!.copy(emoji = emojiStr))
-                    runStateMachine(chatId, update, bot, messageSource)
+                    runStateMachine(chatId, update, bot, messageSource, entity)
                 } else {
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
                 }

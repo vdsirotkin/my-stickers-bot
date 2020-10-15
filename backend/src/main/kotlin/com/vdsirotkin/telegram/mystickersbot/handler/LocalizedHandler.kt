@@ -1,8 +1,10 @@
 package com.vdsirotkin.telegram.mystickersbot.handler
 
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.db.entity.locale
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
+import com.vdsirotkin.telegram.mystickersbot.util.determineChatId
 import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
 import org.springframework.context.MessageSource
 import org.telegram.telegrambots.bots.DefaultAbsSender
@@ -17,8 +19,9 @@ interface LocalizedHandler : BaseHandler {
 
     override fun handle(bot: DefaultAbsSender, update: Update): Mono<BaseHandler> = mdcMono {
         loggerFor(LocalizedHandler::class.java).info("Executing ${this@LocalizedHandler.javaClass.name}")
-        stickerDao.getUserEntity(update.message.chatId).locale
-    }.flatMap { handleInternal(bot, update, MessageSourceWrapper(messageSource, it)) }
+        stickerDao.getUserEntity(determineChatId(update))
+    }.flatMap { handleInternal(bot, update, MessageSourceWrapper(messageSource, it.locale), it) }
 
-    fun handleInternal(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper): Mono<BaseHandler>
+    fun handleInternal(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper,
+                       userEntity: UserEntity): Mono<BaseHandler>
 }

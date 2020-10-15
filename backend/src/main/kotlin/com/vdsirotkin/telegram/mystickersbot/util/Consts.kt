@@ -8,8 +8,12 @@ val availableLocales = listOf(
 )
 
 const val setLanguageCommandPrefix = "set_language_"
+const val chooseEmoji = "choose_emoji_"
 
 const val TEMP_FILE_PREFIX = "com.vdsirotkin.telegram.mystickersbot-"
 
 const val PNG_SUFFIX = ".png"
 const val TGS_SUFFIX = ".tgs"
+
+const val MDC_USER_ID = "userId"
+const val MDC_CALL_ID = "callId"

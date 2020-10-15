@@ -13,14 +13,13 @@ import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.service.image.ImageResizer
-import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
-import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
-import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
-import com.vdsirotkin.telegram.mystickersbot.util.withTempFile
+import com.vdsirotkin.telegram.mystickersbot.util.*
 import com.vdurmont.emoji.EmojiParser
 import org.telegram.telegrambots.bots.DefaultAbsSender
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup
 import org.telegram.telegrambots.meta.api.objects.Update
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
 
@@ -31,21 +30,25 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
     abstract val imageResizer: ImageResizer
     abstract val fileHelper: FileHelper
 
+
+    abstract fun canBeProcessed(update: Update): Boolean
+
+    abstract fun getFileId(update: Update): String
+
     private var photoHandlerState = PhotoHandlerState(false, PhotoHandlerData(NEW))
 
-    override fun handleInternal(bot: DefaultAbsSender,
-                                update: Update,
-                                messageSource: MessageSourceWrapper): Mono<BaseHandler> = mdcMono {
-
-        runStateMachine(bot, update, messageSource)
-    }.thenReturn(this)
-
-    private suspend fun runStateMachine(
+    override fun handleInternal(
             bot: DefaultAbsSender,
             update: Update,
             messageSource: MessageSourceWrapper,
-    ) {
-        val chatId = update.message.chatId
+            userEntity: UserEntity
+    ): Mono<BaseHandler> = mdcMono {
+
+        runStateMachine(bot, update, messageSource, userEntity)
+    }.thenReturn(this)
+
+    private suspend fun runStateMachine(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper, user: UserEntity) {
+        val chatId = determineChatId(update)
         val data = photoHandlerState.data
         when (data.state) {
             NEW -> {
@@ -54,58 +57,36 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
                     photoHandlerState = photoHandlerState.toFinished()
                     return
                 }
+                val message = bot.executeAsync(SendMessage(chatId, messageSource.getMessage("emoji.required")).addEmojiKeyboard())
                 val fileId = getFileId(update)
-                val meta = PhotoMeta(fileId, update.message.messageId)
+                val meta = PhotoMeta(fileId, update.message.messageId, message.messageId)
                 photoHandlerState = photoHandlerState.toWaitingForEmoji(meta)
-                bot.executeAsync(SendMessage(chatId, messageSource.getMessage("emoji.required")))
             }
             WAITING_FOR_EMOJI -> {
-                if (update.message.hasText()) {
-                    val emojis = EmojiParser.extractEmojis(update.message.text)
-                    if (emojis.isEmpty()) {
-                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
-                        return
+                requireNotNull(data.photoMeta)
+                when {
+                    update.hasMessage() && update.message.hasText() -> {
+                        val emojis = EmojiParser.extractEmojis(update.message.text)
+                        if (emojis.isEmpty()) {
+                            bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
+                            return
+                        }
+                        val emojiStr = emojis.joinToString()
+                        processPhoto(bot, data.photoMeta.fileId, user, chatId, data.photoMeta.messageId, messageSource, emojiStr)
+                        photoHandlerState = photoHandlerState.toFinished()
                     }
-                    val emojiStr = emojis.joinToString()
-                    val entity = stickerDao.getUserEntity(chatId)
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("please.wait")))
-                    processPhoto(bot, data.photoMeta!!.fileId, entity, chatId, data.photoMeta.messageId, messageSource, emojiStr)
-                    photoHandlerState = photoHandlerState.toFinished()
-                } else {
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
+                    update.hasCallbackQuery() -> {
+                        val emojiStr = parseEmoji(update.callbackQuery.data)
+                        bot.executeAsync(EditMessageReplyMarkup().setChatId(chatId).setMessageId(data.photoMeta.emojiMessageId).setReplyMarkup(InlineKeyboardMarkup()))
+                        processPhoto(bot, data.photoMeta.fileId, user, chatId, data.photoMeta.messageId, messageSource, emojiStr)
+                        photoHandlerState = photoHandlerState.toFinished()
+                    }
+                    else -> {
+                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
+                    }
                 }
             }
         }
-    }
-
-    companion object : Loggable
-
-    override fun getState(): HandlerState<PhotoHandlerData> = photoHandlerState
-
-    override fun setState(state: HandlerState<PhotoHandlerData>) {
-        photoHandlerState = state as PhotoHandlerState
-    }
-
-    data class PhotoHandlerData(val state: State, val photoMeta: PhotoMeta? = null)
-
-    data class PhotoHandlerState(
-            override val finished: Boolean,
-            override val data: PhotoHandlerData,
-            override val handlerClass: String = PhotoHandler::class.java.name
-    ) : HandlerState<PhotoHandlerData>
-
-    data class PhotoMeta(val fileId: String, val messageId: Int)
-
-    enum class State {
-        NEW, WAITING_FOR_EMOJI
-    }
-
-    private fun PhotoHandlerState.toWaitingForEmoji(meta: PhotoMeta): PhotoHandlerState {
-        return this.copy(data = data.copy(photoMeta = meta, state = WAITING_FOR_EMOJI))
-    }
-
-    private fun PhotoHandlerState.toFinished(): PhotoHandlerState {
-        return this.copy(finished = true)
     }
 
     private suspend fun processPhoto(
@@ -116,6 +97,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
             messageSource: MessageSourceWrapper,
             emoji: String? = null,
     ) {
+        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("please.wait")))
         val file = fileHelper.downloadFile(bot, fileId)
         val resized = try {
             withTempFile(file) {
@@ -137,8 +119,34 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
         }
     }
 
-    abstract fun canBeProcessed(update: Update): Boolean
+    override fun getState(): HandlerState<PhotoHandlerData> = photoHandlerState
 
-    abstract fun getFileId(update: Update): String
+    override fun setState(state: HandlerState<PhotoHandlerData>) {
+        photoHandlerState = state as PhotoHandlerState
+    }
+
+    data class PhotoHandlerData(val state: State, val photoMeta: PhotoMeta? = null)
+
+    data class PhotoHandlerState(
+            override val finished: Boolean,
+            override val data: PhotoHandlerData,
+            override val handlerClass: String = PhotoHandler::class.java.name
+    ) : HandlerState<PhotoHandlerData>
+
+    data class PhotoMeta(val fileId: String, val messageId: Int, val emojiMessageId: Int)
+
+    enum class State {
+        NEW, WAITING_FOR_EMOJI
+    }
+
+    private fun PhotoHandlerState.toWaitingForEmoji(meta: PhotoMeta): PhotoHandlerState {
+        return this.copy(data = data.copy(photoMeta = meta, state = WAITING_FOR_EMOJI))
+    }
+
+    private fun PhotoHandlerState.toFinished(): PhotoHandlerState {
+        return this.copy(finished = true)
+    }
+
+    companion object : Loggable
 
 }

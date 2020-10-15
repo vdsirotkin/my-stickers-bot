@@ -18,6 +18,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
 import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
 import org.telegram.telegrambots.meta.api.methods.stickers.DeleteStickerFromSet
+import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
@@ -33,9 +34,6 @@ import java.io.Serializable
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.resume
-
-const val MDC_CALL_ID = "callId"
-const val MDC_USER_ID = "userId"
 
 val DELETE_TEMP = System.getProperty("delete.temp", "true")!!.toBoolean()
 
@@ -165,4 +163,12 @@ fun Context.resolveMdc() {
 @Suppress("EXPERIMENTAL_API_USAGE")
 fun CoroutineContext.resolveMdc() {
     this[ReactorContext]?.context?.resolveMdc()
+}
+
+fun determineChatId(update: Update): Long {
+    return when {
+        update.hasMessage() -> update.message.chatId
+        update.hasCallbackQuery() -> update.callbackQuery.from.id.toLong()
+        else -> throw IllegalArgumentException("Unsupported message type")
+    }
 }
