@@ -5,12 +5,15 @@ import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.service.image.ImageResizer
+import org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE
 import org.springframework.context.MessageSource
+import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Component
 import org.telegram.telegrambots.meta.api.objects.Update
 import ru.sokomishalov.commons.core.log.Loggable
 
 @Component
+@Scope(SCOPE_PROTOTYPE)
 class PhotoHandler(override val stickerPackMessagesSender: StickerPackMessagesSender,
                    override val stickerPackManagementService: StickerPackManagementService,
                    override val imageResizer: ImageResizer,
