@@ -1,6 +1,5 @@
 package com.vdsirotkin.telegram.mystickersbot.service.image
 
-import com.vdsirotkin.telegram.mystickersbot.handler.photo.PhotoHandler
 import com.vdsirotkin.telegram.mystickersbot.util.PNG_SUFFIX
 import com.vdsirotkin.telegram.mystickersbot.util.TEMP_FILE_PREFIX
 import com.vdsirotkin.telegram.mystickersbot.util.withTempFile
@@ -33,22 +32,22 @@ class ImageResizer(
                 val newHeight = 512
                 val coefficient = newHeight.toDouble() / height.toDouble()
                 val newWidth = (width * coefficient).roundToInt()
-                PhotoHandler.Dimensions(newWidth, newHeight)
+                Dimensions(newWidth, newHeight)
             }
             width > height -> { // horizontal
                 val newWidth = 512
                 val coefficient = newWidth.toDouble() / width.toDouble()
                 val newHeight = (height * coefficient).roundToInt()
-                PhotoHandler.Dimensions(newWidth, newHeight)
+                Dimensions(newWidth, newHeight)
             }
             else -> { // square
                 val newWidth = 512
                 val newHeight = 512
-                PhotoHandler.Dimensions(newWidth, newHeight)
+                Dimensions(newWidth, newHeight)
             }
         }
         val (newWidth, newHeight) = dimensions
-        PhotoHandler.logger.info("Old dimensions: w$width,h$height, new dimesions: w$newWidth,h$newHeight")
+        logger.info("Old dimensions: w$width,h$height, new dimesions: w$newWidth,h$newHeight")
         Thumbnails.of(file).forceSize(newWidth, newHeight).toFile(newImage)
         if (newImage.length() > 510) {
             withTempFile(Files.createTempFile(TEMP_FILE_PREFIX, ".jpg").toFile()) { newJpgImage ->
@@ -60,5 +59,7 @@ class ImageResizer(
     }
 
     companion object : Loggable
+
+    data class Dimensions(val width: Int, val height: Int)
 
 }

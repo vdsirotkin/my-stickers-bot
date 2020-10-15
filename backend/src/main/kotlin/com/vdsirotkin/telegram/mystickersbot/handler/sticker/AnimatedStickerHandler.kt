@@ -2,6 +2,7 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
@@ -70,7 +71,7 @@ class AnimatedStickerHandler(
                             .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), packLink(entity.animatedPackName))
             )
         }
-        dao.saveSticker(chatId, sticker, true)
+        dao.saveSticker(chatId, StickerMeta(sticker.fileId, sticker.fileUniqueId, sticker.emoji), true)
     }.thenReturn(this)
 
     private suspend fun optimizeIfNecessary(originalFile: File, block: suspend (File) -> Unit) {

@@ -68,7 +68,7 @@ class JobProcessorIT {
     }
 
     @Test
-    fun `test job processing`() = runBlocking {
+    fun testJobProcessing() = runBlocking {
 
         jobProcessor.startJob(jobId).join()
 

@@ -73,10 +73,16 @@ class MyStickersBot(
 
                     it.context.resolveMdc()
                     val t = it.throwable!!
+
                     logException(t)
                     sendErrorMessagesAsync(chatId, MDC.get(MDC_CALL_ID))
-                    MDC.clear()
 
+                    val errorHandler = it.get()
+                    if (errorHandler is StatefulHandler<*>) {
+                        handlerStateMap.remove(chatId)
+                    }
+
+                    MDC.clear()
                 }.subscriberContext {
                     it.put(MDC_CALL_ID, UUID.randomUUID().toString())
                             .put(MDC_USER_ID, chatId.toString())
@@ -117,7 +123,7 @@ class MyStickersBot(
     @Suppress("UNCHECKED_CAST")
     private fun prepareStatefulHandler(chatId: Long): BaseHandler {
         val state = handlerStateMap[chatId]!!
-        return (handlerFactory.newHandler(Class.forName(state.kclass).kotlin as KClass<out BaseHandler>) as StatefulHandler<Any>).apply {
+        return (handlerFactory.newHandler(Class.forName(state.handlerClass).kotlin as KClass<out BaseHandler>) as StatefulHandler<Any>).apply {
             setState(state as HandlerState<Any>)
         }
     }

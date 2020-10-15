@@ -6,6 +6,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.UserStatus
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -43,13 +44,15 @@ internal class BatchJobDAOTest {
     }
 
     @Test
-    fun `test find all jobs`() = runBlocking {
+    @DisplayName("test find all jobs")
+    fun testFindAllJobs() = runBlocking {
         val allJobs = batchJobDAO.findAllJobs()
         assertThat(allJobs.size).isEqualTo(1)
     }.unit()
 
     @Test
-    fun `test find unfinished jobs`() = runBlocking {
+    @DisplayName("test find unfinished jobs")
+    fun testFindUnfinishedJobs() = runBlocking {
         template.save(BatchJobEntity(UUID.randomUUID().toString(), "test", "test", mutableListOf(), finished = true)).await()
 
         val overallSize = template.count(Query(), BatchJobEntity::class.java).await()
@@ -62,14 +65,16 @@ internal class BatchJobDAOTest {
     }.unit()
 
     @Test
-    fun `test find unprocessed users batch`() = runBlocking {
+    @DisplayName("test find unprocessed users batch")
+    fun testFindUnprocessedUsersBatch() = runBlocking {
         val list = batchJobDAO.findUnprocessedUsersBatch(jobId)
         assertThat(list.size).isEqualTo(30)
         assertThat(list.filter { it.status == BatchJobStatus.NOT_STARTED }.size).isEqualTo(30)
     }.unit()
 
     @Test
-    fun `test update processed statuses`() = runBlocking {
+    @DisplayName("test update processed statuses")
+    fun testUpdateProcessedStatuses() = runBlocking {
         batchJobDAO.updateProcessedStatus(jobId, listOf(
                 UserStatus(1, BatchJobStatus.SUCCESS),
                 UserStatus(2, BatchJobStatus.SUCCESS),
@@ -82,7 +87,8 @@ internal class BatchJobDAOTest {
     }.unit()
 
     @Test
-    fun `test batch stats`() = runBlocking {
+    @DisplayName("test batch stats")
+    fun testBatchStats() = runBlocking {
         val stats = batchJobDAO.getJobStats(jobId)
 
         assertThat(stats.overallCount).isEqualTo(52)
