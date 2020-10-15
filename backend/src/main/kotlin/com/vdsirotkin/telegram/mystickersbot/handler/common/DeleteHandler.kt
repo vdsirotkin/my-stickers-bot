@@ -57,7 +57,7 @@ class DeleteHandler(
         }
     }.thenReturn(this)
 
-    data class DeleteHandlerState(override val data: State, override val finished: Boolean, override val kclass: String = DeleteHandler::class.java.name) : HandlerState<State>
+    data class DeleteHandlerState(override val data: State, override val finished: Boolean, override val handlerClass: String = DeleteHandler::class.java.name) : HandlerState<State>
 
     override fun getState(): HandlerState<State> {
         return state

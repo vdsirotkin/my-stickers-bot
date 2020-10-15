@@ -123,7 +123,7 @@ class MyStickersBot(
     @Suppress("UNCHECKED_CAST")
     private fun prepareStatefulHandler(chatId: Long): BaseHandler {
         val state = handlerStateMap[chatId]!!
-        return (handlerFactory.newHandler(Class.forName(state.kclass).kotlin as KClass<out BaseHandler>) as StatefulHandler<Any>).apply {
+        return (handlerFactory.newHandler(Class.forName(state.handlerClass).kotlin as KClass<out BaseHandler>) as StatefulHandler<Any>).apply {
             setState(state as HandlerState<Any>)
         }
     }

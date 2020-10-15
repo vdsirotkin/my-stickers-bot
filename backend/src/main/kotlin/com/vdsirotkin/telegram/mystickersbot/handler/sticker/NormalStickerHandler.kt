@@ -135,7 +135,7 @@ class NormalStickerHandler(
 
     data class NormalStickerHandlerState(override val data: HandlerStateData,
                                          override val finished: Boolean,
-                                         override val kclass: String = NormalStickerHandler::class.java.name) : HandlerState<HandlerStateData>
+                                         override val handlerClass: String = NormalStickerHandler::class.java.name) : HandlerState<HandlerStateData>
 
     private fun NormalStickerHandlerState.toEmojiRequired(stickerMeta: StickerMeta): NormalStickerHandlerState {
         return this.copy(data = this.data.copy(state = State.EMOJI_REQUIRED, stickerMeta = stickerMeta))
