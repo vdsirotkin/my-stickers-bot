@@ -132,6 +132,7 @@ class NormalStickerHandlerTest {
 
     private fun buildTextUpdate(text: String? = "😀"): Update {
         return mockkClass(Update::class) upd@{
+            every { this@upd.hasMessage() } returns true
             val message = mockkClass(Message::class) msg@{
                 every { this@msg.text } returns text
                 every { this@msg.hasText() } returns true
@@ -144,6 +145,7 @@ class NormalStickerHandlerTest {
 
     private fun buildStickerUpdate(emoji: String? = "😀"): Update {
         return mockkClass(Update::class) upd@{
+            every { this@upd.hasMessage() } returns true
             val message = mockkClass(Message::class) msg@{
                 val sticker = mockkClass(Sticker::class) stc@{
                     every { this@stc.emoji } returns emoji
