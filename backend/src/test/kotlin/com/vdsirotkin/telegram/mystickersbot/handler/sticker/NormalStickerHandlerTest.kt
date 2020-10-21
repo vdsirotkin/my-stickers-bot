@@ -106,10 +106,10 @@ class NormalStickerHandlerTest {
     @DisplayName("test scenario with no-emoji sticker")
     fun testScenarioWithNoEmojiSticker() = runBlocking {
         val update = buildStickerUpdate(null)
-        normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
+        val firstResult = normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
         val update2 = buildTextUpdate()
-        normalStickerHandler.handle(bot, update2).fillMdc(CHAT_ID).awaitStrict()
+        firstResult.handle(bot, update2).fillMdc(CHAT_ID).awaitStrict()
 
         verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
         verify(exactly = 3) { bot.executeAsync(any<SendMessage>(), any()) }

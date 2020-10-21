@@ -49,7 +49,7 @@ class NormalStickerHandler(
                 val sticker = update.message!!.sticker!!
                 if (stickerDao.stickerExists(entity, sticker, false)) {
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).setReplyToMessageId(update.message!!.messageId))
-                    transitionTo(State.Finished)
+                    return@on transitionTo(State.Finished)
                 }
                 logDebug(sticker.toString())
                 if (sticker.emoji == null) {
@@ -95,6 +95,7 @@ class NormalStickerHandler(
                 }
             }
         }
+        state<State.Finished> {  }
     }
 
     private suspend fun processSticker(
@@ -135,9 +136,8 @@ class NormalStickerHandler(
             userEntity: UserEntity,
     ): Mono<BaseHandler> = statefulMdcMono {
         stateMachine = stateMachine.with { initialState(state.data) }
-        withContext(Dispatchers.IO) {
-            stateMachine.transition(Event.ReceivedMessage(bot, update, messageSource, userEntity))
-        }
+        stateMachine.transition(Event.ReceivedMessage(bot, update, messageSource, userEntity))
+        state = state.copy(data = stateMachine.state)
     }
 
     sealed class State {
@@ -172,7 +172,7 @@ class NormalStickerHandler(
 
     companion object : Loggable
 
-    override fun getState(): HandlerState<State> = state.copy(data = stateMachine.state)
+    override fun getState(): HandlerState<State> = state
 
     override fun setState(state: HandlerState<State>) {
         this.state = state as NormalStickerHandlerState
