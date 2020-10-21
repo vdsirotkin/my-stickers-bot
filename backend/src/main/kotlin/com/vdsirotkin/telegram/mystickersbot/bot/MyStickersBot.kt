@@ -1,6 +1,7 @@
 package com.vdsirotkin.telegram.mystickersbot.bot
 
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
+import com.vdsirotkin.telegram.mystickersbot.exception.HandlerException
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.GroupHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.HandlerFactory
@@ -81,13 +82,16 @@ class MyStickersBot(
                     it.context.resolveMdc()
                     val t = it.throwable!!
 
-                    logException(t)
+                    if (t is HandlerException) {
+                        logException(t.parent)
+                        if (t.handler is StatefulHandler<*>) {
+                            handlerStateMap.remove(chatId)
+                        }
+                    } else {
+                        logException(t)
+                    }
                     sendErrorMessagesAsync(chatId, MDC.get(MDC_CALL_ID))
 
-                    val errorHandler = it.get()
-                    if (errorHandler is StatefulHandler<*>) {
-                        handlerStateMap.remove(chatId)
-                    }
 
                     MDC.clear()
                 }.subscriberContext {
@@ -103,7 +107,7 @@ class MyStickersBot(
     }
 
     private fun isGroup(update: Update): Boolean {
-        val chat = update.message.chat ?: return false
+        val chat = update.message?.chat ?: return false
         return (chat.isGroupChat && chat.isSuperGroupChat && chat.isChannelChat)
     }
 

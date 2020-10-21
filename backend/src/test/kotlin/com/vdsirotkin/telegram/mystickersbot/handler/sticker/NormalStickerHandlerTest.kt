@@ -39,7 +39,7 @@ const val MESSAGE_ID = 123321
 class NormalStickerHandlerTest {
 
     val normalStickerHandler: NormalStickerHandler
-    val defaultState = NormalStickerHandler.NormalStickerHandlerState(NormalStickerHandler.HandlerStateData(NormalStickerHandler.State.NEW), false)
+    val defaultState = NormalStickerHandler.NormalStickerHandlerState(NormalStickerHandler.State.New)
     val bot = spyk(mockkClass(MyStickersBot::class))
     val dao: StickerDAO = mockkClass(StickerDAO::class, relaxed = true)
 
