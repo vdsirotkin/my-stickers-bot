@@ -59,6 +59,7 @@ class NormalStickerHandler(
                 val sticker = update.message!!.sticker!!
                 if (stickerDao.stickerExists(entity, sticker, false)) {
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).setReplyToMessageId(update.message!!.messageId))
+                    state = state.toFinished()
                     return
                 }
                 logDebug(sticker.toString())
@@ -93,7 +94,7 @@ class NormalStickerHandler(
                 } catch (e: Exception) {
                     throw e
                 } finally {
-                    state = state.finished()
+                    state = state.toFinished()
                 }
             }
         }
@@ -147,7 +148,7 @@ class NormalStickerHandler(
         return this.copy(data = this.data.copy(state = State.ALL_DONE, stickerMeta = meta))
     }
 
-    private fun NormalStickerHandlerState.finished(): NormalStickerHandlerState {
+    private fun NormalStickerHandlerState.toFinished(): NormalStickerHandlerState {
         return this.copy(finished = true)
     }
 
