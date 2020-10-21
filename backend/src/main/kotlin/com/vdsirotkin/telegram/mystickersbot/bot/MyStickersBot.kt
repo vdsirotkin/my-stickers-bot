@@ -2,6 +2,7 @@ package com.vdsirotkin.telegram.mystickersbot.bot
 
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
+import com.vdsirotkin.telegram.mystickersbot.handler.GroupHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.HandlerFactory
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
 import com.vdsirotkin.telegram.mystickersbot.service.LocalizedMessageSourceProvider
@@ -37,6 +38,10 @@ class MyStickersBot(
     private val handlerStateMap: MutableMap<Long, HandlerState<*>> = mutableMapOf()
 
     override fun onUpdateReceived(update: Update) {
+        if (isGroup(update)) {
+            handleGroup(update)
+            return
+        }
         val chatId = determineChatId(update)
         if (update.message?.text == "/cancel") {
             handleCancel(chatId)
@@ -55,6 +60,7 @@ class MyStickersBot(
             update.message?.hasSticker() == true -> processSticker(update.message.sticker)
             update.message?.hasPhoto() == true -> handlerFactory.photoHandler
             update.message?.hasDocument() == true -> handlerFactory.documentHandler
+            update.message?.newChatMembers?.isNotEmpty() == true -> GroupHandler(chatId)
             else -> handlerFactory.unknownMessageHandler
         }
 
@@ -88,6 +94,17 @@ class MyStickersBot(
                     it.put(MDC_CALL_ID, UUID.randomUUID().toString())
                             .put(MDC_USER_ID, chatId.toString())
                 }.subscribe()
+    }
+
+    private fun handleGroup(update: Update) {
+        GlobalScope.launch {
+            executeAsync(SendMessage(update.message.chatId, GROUP_MESSAGE))
+        }
+    }
+
+    private fun isGroup(update: Update): Boolean {
+        val chat = update.message.chat ?: return false
+        return (chat.isGroupChat && chat.isSuperGroupChat && chat.isChannelChat)
     }
 
     private fun processEmojiQuery(chatId: Long): BaseHandler {

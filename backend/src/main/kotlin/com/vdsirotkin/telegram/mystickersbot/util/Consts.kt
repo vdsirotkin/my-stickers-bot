@@ -17,3 +17,5 @@ const val TGS_SUFFIX = ".tgs"
 
 const val MDC_USER_ID = "userId"
 const val MDC_CALL_ID = "callId"
+
+const val GROUP_MESSAGE = "Sorry, i don't support groups. Please remove me from this chat."
