@@ -35,69 +35,67 @@ class NormalStickerHandler(
         private val stickerPackManagementService: StickerPackManagementService,
         private val stickerPackMessagesSender: StickerPackMessagesSender,
         override val stickerDao: StickerDAO,
-        override val messageSource: MessageSource
-) : LocalizedHandler, StatefulHandler<NormalStickerHandler.HandlerStateData> {
+        override val messageSource: MessageSource,
+) : LocalizedHandler, StatefulHandler<NormalStickerHandler.State> {
 
-    private var state: NormalStickerHandlerState = NormalStickerHandlerState(HandlerStateData(State.NEW), false)
+    private var state = NormalStickerHandlerState(State.New)
 
-    override fun handleInternal(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper,
-                                userEntity: UserEntity): Mono<BaseHandler> = mdcMono {
-        val chatId = update.message!!.chatId
-        runStateMachine(chatId, update, bot, messageSource, userEntity)
-    }.thenReturn(this)
-
-    private suspend fun runStateMachine(
-            chatId: Long,
-            update: Update,
-            bot: DefaultAbsSender,
-            messageSource: MessageSourceWrapper,
-            entity: UserEntity
-    ) {
-        val messageId = update.message!!.messageId
-        when (state.data.state) {
-            State.NEW -> {
+    var stateMachine = StateMachine.create<State, Event, SideEffect> {
+        initialState(State.New)
+        state<State.New> {
+            on<Event.ReceivedMessage> {
+                val (bot, update, messageSource, entity) = it.toEventDC()
+                val chatId = update.message!!.chatId
                 val sticker = update.message!!.sticker!!
                 if (stickerDao.stickerExists(entity, sticker, false)) {
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).setReplyToMessageId(update.message!!.messageId))
-                    state = state.toFinished()
-                    return
+                    return@on transitionTo(State.Finished)
                 }
                 logDebug(sticker.toString())
                 if (sticker.emoji == null) {
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("emoji.required")))
-                    state = state.toEmojiRequired(StickerMeta(sticker.fileId, sticker.fileUniqueId))
+                    transitionTo(State.WaitingForEmoji(StickerMeta(sticker.fileId, sticker.fileUniqueId)))
                 } else {
-                    state = state.toAllDone(StickerMeta(sticker.fileId, sticker.fileUniqueId, sticker.emoji))
-                    runStateMachine(chatId, update, bot, messageSource, entity)
+                    transitionTo(State.AllDone(StickerMeta(sticker.fileId, sticker.fileUniqueId, sticker.emoji)))
                 }
             }
-            State.EMOJI_REQUIRED -> {
+        }
+        state<State.WaitingForEmoji> {
+            on<Event.ReceivedMessage> {
+                val (bot, update, messageSource, entity) = it.toEventDC()
+                val chatId = update.message!!.chatId
                 if (update.message.hasText()) {
                     val emojis = EmojiParser.extractEmojis(update.message.text)
                     if (emojis.isEmpty()) {
                         bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
-                        return
+                        return@on dontTransition()
                     }
                     val emojiStr = emojis.joinToString()
-                    state = state.toAllDone(state.data.stickerMeta!!.copy(emoji = emojiStr))
-                    runStateMachine(chatId, update, bot, messageSource, entity)
+                    transitionTo(State.AllDone(this@on.meta.copy(emoji = emojiStr)))
                 } else {
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
+                    dontTransition()
                 }
             }
-            State.ALL_DONE -> {
+        }
+        state<State.AllDone> {
+            onEnter {
+                val (bot, update, messageSource, entity) = it.toEventDC()
+                val chatId = update.message!!.chatId
+                val messageId = update.message!!.messageId
                 try {
-                    processSticker(bot, state.data.stickerMeta!!, entity, chatId, messageSource, messageId)
+                    processSticker(bot, this@onEnter.meta, entity, chatId, messageSource, messageId)
                 } catch (e: PngNotCreatedException) {
                     logger.warn("Can't create png from this sticker")
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.cant.be.processed")).setReplyToMessageId(messageId))
                 } catch (e: Exception) {
                     throw e
                 } finally {
-                    state = state.toFinished()
+                    transitionTo(State.Finished)
                 }
             }
         }
+        state<State.Finished> {  }
     }
 
     private suspend fun processSticker(
@@ -106,7 +104,8 @@ class NormalStickerHandler(
             entity: UserEntity,
             chatId: Long,
             messageSource: MessageSourceWrapper,
-            messageId: Int) {
+            messageId: Int,
+    ) {
         withTempFile(preparePngFile(bot, sticker)) {
             if (entity.normalPackCreated) {
                 stickerPackManagementService.addStickerToPack(bot, chatId, it, entity, sticker.emoji)
@@ -120,8 +119,10 @@ class NormalStickerHandler(
         }
     }
 
-    private suspend fun preparePngFile(bot: DefaultAbsSender,
-                                       sticker: StickerMeta): File {
+    private suspend fun preparePngFile(
+            bot: DefaultAbsSender,
+            sticker: StickerMeta,
+    ): File {
         val file = withContext(Dispatchers.IO) { Files.createTempFile(TEMP_FILE_PREFIX, ".webp").toFile() }
         return withTempFile(file) { webpFile ->
             val stickerFile = bot.executeAsync(GetFile().setFileId(sticker.fileId))
@@ -130,34 +131,52 @@ class NormalStickerHandler(
         }
     }
 
-    override fun getState(): HandlerState<HandlerStateData> = state
-
-    override fun setState(state: HandlerState<HandlerStateData>) {
-        this.state = state as NormalStickerHandlerState
+    override fun handleInternal(
+            bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper,
+            userEntity: UserEntity,
+    ): Mono<BaseHandler> = statefulMdcMono {
+        stateMachine = stateMachine.with { initialState(state.data) }
+        stateMachine.transition(Event.ReceivedMessage(bot, update, messageSource, userEntity))
+        state = state.copy(data = stateMachine.state)
     }
 
-    data class NormalStickerHandlerState(override val data: HandlerStateData,
-                                         override val finished: Boolean,
-                                         override val handlerClass: String = NormalStickerHandler::class.java.name) : HandlerState<HandlerStateData>
-
-    private fun NormalStickerHandlerState.toEmojiRequired(stickerMeta: StickerMeta): NormalStickerHandlerState {
-        return this.copy(data = this.data.copy(state = State.EMOJI_REQUIRED, stickerMeta = stickerMeta))
+    sealed class State {
+        object New : State()
+        class WaitingForEmoji(val meta: StickerMeta) : State()
+        class AllDone(val meta: StickerMeta) : State()
+        object Finished : State()
     }
 
-    private fun NormalStickerHandlerState.toAllDone(meta: StickerMeta): NormalStickerHandlerState {
-        return this.copy(data = this.data.copy(state = State.ALL_DONE, stickerMeta = meta))
+    sealed class Event(
+            val bot: DefaultAbsSender,
+            val update: Update,
+            val messageSource: MessageSourceWrapper,
+            val userEntity: UserEntity,
+    ) {
+        class ReceivedMessage(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper, userEntity: UserEntity) : Event(bot, update, messageSource, userEntity)
+        fun toEventDC(): EventDC = EventDC(bot, update, messageSource, userEntity)
     }
 
-    private fun NormalStickerHandlerState.toFinished(): NormalStickerHandlerState {
-        return this.copy(finished = true)
-    }
+    data class EventDC(val bot: DefaultAbsSender, val update: Update, val messageSource: MessageSourceWrapper, val userEntity: UserEntity)
 
-    data class HandlerStateData(val state: State, val stickerMeta: StickerMeta? = null)
+    sealed class SideEffect
 
-    enum class State {
-        NEW, EMOJI_REQUIRED, ALL_DONE
+    data class NormalStickerHandlerState(
+            override val data: State,
+            override val handlerClass: String = NormalStickerHandler::class.java.name,
+    ) : HandlerState<State> {
+        override val finished: Boolean
+            get() = data == State.Finished
+
     }
 
     companion object : Loggable
+
+    override fun getState(): HandlerState<State> = state
+
+    override fun setState(state: HandlerState<State>) {
+        this.state = state as NormalStickerHandlerState
+    }
+
 }
 

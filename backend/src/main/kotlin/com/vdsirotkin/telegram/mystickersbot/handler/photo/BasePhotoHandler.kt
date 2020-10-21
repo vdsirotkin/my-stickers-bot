@@ -42,10 +42,9 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
             update: Update,
             messageSource: MessageSourceWrapper,
             userEntity: UserEntity
-    ): Mono<BaseHandler> = mdcMono {
-
+    ): Mono<BaseHandler> = statefulMdcMono {
         runStateMachine(bot, update, messageSource, userEntity)
-    }.thenReturn(this)
+    }
 
     private suspend fun runStateMachine(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper, user: UserEntity) {
         val chatId = determineChatId(update)

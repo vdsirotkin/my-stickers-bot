@@ -8,7 +8,10 @@ import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.common.DeleteHandler.State.NEW
 import com.vdsirotkin.telegram.mystickersbot.handler.common.DeleteHandler.State.PROCESSING
-import com.vdsirotkin.telegram.mystickersbot.util.*
+import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
+import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
+import com.vdsirotkin.telegram.mystickersbot.util.executeStickerPackAction
+import com.vdsirotkin.telegram.mystickersbot.util.packLink
 import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.MessageSource
 import org.springframework.context.annotation.Scope
@@ -33,7 +36,7 @@ class DeleteHandler(
             bot: DefaultAbsSender, update: Update,
             messageSource: MessageSourceWrapper,
             userEntity: UserEntity
-    ): Mono<BaseHandler> = mdcMono {
+    ): Mono<BaseHandler> = statefulMdcMono {
         val chatId = update.message.chatId
         when (state.data) {
             NEW -> {
@@ -57,7 +60,7 @@ class DeleteHandler(
                 }
             }
         }
-    }.thenReturn(this)
+    }
 
     data class DeleteHandlerState(override val data: State, override val finished: Boolean, override val handlerClass: String = DeleteHandler::class.java.name) : HandlerState<State>
 
