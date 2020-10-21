@@ -8,7 +8,7 @@ import com.vdsirotkin.telegram.mystickersbot.handler.language.SetLanguageHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.photo.DocumentHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.photo.PhotoHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.sticker.AnimatedStickerHandler
-import com.vdsirotkin.telegram.mystickersbot.handler.sticker.NormalStickerHandler
+import com.vdsirotkin.telegram.mystickersbot.handler.sticker.NormalStickerHandler2
 import org.springframework.beans.factory.annotation.Lookup
 import org.springframework.context.ApplicationContext
 import org.springframework.stereotype.Service
@@ -23,7 +23,7 @@ abstract class HandlerFactory(
     abstract val startHandler: StartHandler
 
     @get:Lookup
-    abstract val normalStickerHandler: NormalStickerHandler
+    abstract val normalStickerHandler: NormalStickerHandler2
 
     @get:Lookup
     abstract val animatedStickerHandler: AnimatedStickerHandler
