@@ -79,19 +79,19 @@ class NormalStickerHandler(
             }
         }
         state<State.AllDone> {
-            onEnter {
+            internal<Event> {
                 val (bot, update, messageSource, entity) = it.toEventDC()
                 val chatId = update.message!!.chatId
                 val messageId = update.message!!.messageId
                 try {
-                    processSticker(bot, this@onEnter.meta, entity, chatId, messageSource, messageId)
+                    processSticker(bot, this@internal.meta, entity, chatId, messageSource, messageId)
+                    transitionTo(State.Finished)
                 } catch (e: PngNotCreatedException) {
                     logger.warn("Can't create png from this sticker")
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.cant.be.processed")).setReplyToMessageId(messageId))
+                    transitionTo(State.Finished)
                 } catch (e: Exception) {
                     throw e
-                } finally {
-                    transitionTo(State.Finished)
                 }
             }
         }
@@ -144,6 +144,7 @@ class NormalStickerHandler(
         object New : State()
         class WaitingForEmoji(val meta: StickerMeta) : State()
         class AllDone(val meta: StickerMeta) : State()
+        object PreFinished : State()
         object Finished : State()
     }
 

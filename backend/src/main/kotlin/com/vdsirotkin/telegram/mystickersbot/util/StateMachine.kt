@@ -25,6 +25,9 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
                 }
                 with(toState) {
                     notifyOnEnter(event)
+                    if (this.getDefinition().hasInternal) {
+                        return transition(event)
+                    }
                 }
             }
         }
@@ -87,6 +90,7 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
     ) {
 
         class State<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> internal constructor() {
+            var hasInternal: Boolean = false
             val onEnterListeners = mutableListOf<suspend (STATE, EVENT) -> Unit>()
             val onExitListeners = mutableListOf<suspend (STATE, EVENT) -> Unit>()
             val transitions = linkedMapOf<Matcher<EVENT, EVENT>, suspend (STATE, EVENT) -> TransitionTo<STATE, SIDE_EFFECT>>()
@@ -164,8 +168,13 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
 
             fun <E : EVENT> on(
                     eventMatcher: Matcher<EVENT, E>,
-                    createTransitionTo: suspend S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>
+                    createTransitionTo: suspend S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>,
+                    internal: Boolean
             ) {
+                if (stateDefinition.hasInternal && internal) {
+                    throw IllegalArgumentException("One state can have only one internal transition")
+                }
+                stateDefinition.hasInternal = internal
                 stateDefinition.transitions[eventMatcher] = { state, event ->
                     @Suppress("UNCHECKED_CAST")
                     createTransitionTo((state as S), event as E)
@@ -175,14 +184,18 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
             inline fun <reified E : EVENT> on(
                     noinline createTransitionTo: suspend S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>
             ) {
-                return on(any(), createTransitionTo)
+                return on(any(), createTransitionTo, false)
             }
 
             inline fun <reified E : EVENT> on(
                     event: E,
                     noinline createTransitionTo: suspend S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>
             ) {
-                return on(eq(event), createTransitionTo)
+                return on(eq(event), createTransitionTo, false)
+            }
+
+            inline fun <reified E : EVENT> internal(noinline createTransitionTo: suspend S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>) {
+                return on(any(), createTransitionTo, true)
             }
 
             fun onEnter(listener: suspend S.(EVENT) -> Unit) = with(stateDefinition) {
