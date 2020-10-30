@@ -148,4 +148,10 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
 
     companion object : Loggable
 
+    override suspend fun cancel(bot: DefaultAbsSender, chatId: Long) {
+        val messageId = photoHandlerState.data.photoMeta?.emojiMessageId
+        if (messageId != null) {
+           bot.executeAsync(EditMessageReplyMarkup().apply { this.chatId = chatId.toString(); this.messageId = messageId; this.replyMarkup = InlineKeyboardMarkup() })
+        }
+    }
 }
