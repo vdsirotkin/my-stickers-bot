@@ -129,8 +129,10 @@ class MyStickersBot(
 
     private fun handleCancel(chatId: Long) {
         if (handlerStateMap.containsKey(chatId)) {
-            handlerStateMap.remove(chatId)
+            val state = handlerStateMap.remove(chatId)!!
+            val handler = prepareStatefulHandler(state)
             GlobalScope.launch {
+                handler.cancel(this@MyStickersBot, chatId)
                 val messageSource = messageSourceProvider.getMessageSource(chatId)
                 executeAsync(SendMessage(chatId, messageSource.getMessage("cancel.success")))
             }
@@ -142,9 +144,13 @@ class MyStickersBot(
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
     private fun prepareStatefulHandler(chatId: Long): BaseHandler {
         val state = handlerStateMap[chatId]!!
+        return prepareStatefulHandler(state)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun prepareStatefulHandler(state: HandlerState<*>): StatefulHandler<Any> {
         return (handlerFactory.newHandler(Class.forName(state.handlerClass).kotlin as KClass<out BaseHandler>) as StatefulHandler<Any>).apply {
             setState(state as HandlerState<Any>)
         }
