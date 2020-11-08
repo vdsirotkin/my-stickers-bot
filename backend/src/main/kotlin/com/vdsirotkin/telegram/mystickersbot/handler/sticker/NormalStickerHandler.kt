@@ -1,5 +1,9 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.request.GetFile
+import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
@@ -8,6 +12,7 @@ import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
+import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.service.image.PngService
@@ -19,10 +24,6 @@ import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.MessageSource
 import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Service
-import org.telegram.telegrambots.bots.DefaultAbsSender
-import org.telegram.telegrambots.meta.api.methods.GetFile
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.objects.Update
 import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
 import java.io.File
@@ -34,6 +35,7 @@ class NormalStickerHandler(
         private val pngService: PngService,
         private val stickerPackManagementService: StickerPackManagementService,
         private val stickerPackMessagesSender: StickerPackMessagesSender,
+        private val fileHelper: FileHelper,
         override val stickerDao: StickerDAO,
         override val messageSource: MessageSource,
 ) : LocalizedHandler, StatefulHandler<NormalStickerHandler.State> {
@@ -45,27 +47,27 @@ class NormalStickerHandler(
         state<State.New> {
             on<Event.ReceivedMessage> {
                 val (bot, update, messageSource, entity) = it.toEventDC()
-                val chatId = update.message!!.chatId
-                val sticker = update.message!!.sticker!!
+                val chatId = update.message().chat().id()
+                val sticker = update.message().sticker()
                 if (stickerDao.stickerExists(entity, sticker, false)) {
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).setReplyToMessageId(update.message!!.messageId))
+                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).replyToMessageId(update.message().messageId()))
                     return@on transitionTo(State.Finished)
                 }
                 logDebug(sticker.toString())
-                if (sticker.emoji == null) {
+                if (sticker.emoji() == null) {
                     bot.executeAsync(SendMessage(chatId, messageSource.getMessage("emoji.required")))
-                    transitionTo(State.WaitingForEmoji(StickerMeta(sticker.fileId, sticker.fileUniqueId)))
+                    transitionTo(State.WaitingForEmoji(StickerMeta(sticker.fileId(), sticker.fileUniqueId())))
                 } else {
-                    transitionTo(State.AllDone(StickerMeta(sticker.fileId, sticker.fileUniqueId, sticker.emoji)))
+                    transitionTo(State.AllDone(StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji())))
                 }
             }
         }
         state<State.WaitingForEmoji> {
             on<Event.ReceivedMessage> {
                 val (bot, update, messageSource, entity) = it.toEventDC()
-                val chatId = update.message!!.chatId
-                if (update.message.hasText()) {
-                    val emojis = EmojiParser.extractEmojis(update.message.text)
+                val chatId = update.message().chat().id()
+                if (update.message().text() != null) {
+                    val emojis = EmojiParser.extractEmojis(update.message().text())
                     if (emojis.isEmpty()) {
                         bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
                         return@on dontTransition()
@@ -81,14 +83,14 @@ class NormalStickerHandler(
         state<State.AllDone> {
             internal<Event> {
                 val (bot, update, messageSource, entity) = it.toEventDC()
-                val chatId = update.message!!.chatId
-                val messageId = update.message!!.messageId
+                val chatId = update.message().chat().id()
+                val messageId = update.message().messageId()
                 try {
                     processSticker(bot, this@internal.meta, entity, chatId, messageSource, messageId)
                     transitionTo(State.Finished)
                 } catch (e: PngNotCreatedException) {
                     logger.warn("Can't create png from this sticker")
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.cant.be.processed")).setReplyToMessageId(messageId))
+                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.cant.be.processed")).replyToMessageId(messageId))
                     transitionTo(State.Finished)
                 } catch (e: Exception) {
                     throw e
@@ -99,7 +101,7 @@ class NormalStickerHandler(
     }
 
     private suspend fun processSticker(
-            bot: DefaultAbsSender,
+            bot: TelegramBot,
             sticker: StickerMeta,
             entity: UserEntity,
             chatId: Long,
@@ -120,19 +122,19 @@ class NormalStickerHandler(
     }
 
     private suspend fun preparePngFile(
-            bot: DefaultAbsSender,
+            bot: TelegramBot,
             sticker: StickerMeta,
     ): File {
         val file = withContext(Dispatchers.IO) { Files.createTempFile(TEMP_FILE_PREFIX, ".webp").toFile() }
         return withTempFile(file) { webpFile ->
-            val stickerFile = bot.executeAsync(GetFile().setFileId(sticker.fileId))
-            bot.downloadFile(stickerFile, webpFile)
+            val stickerFile = bot.executeAsync(GetFile(sticker.fileId))
+            fileHelper.downloadFile(bot, stickerFile.file().fileId(), webpFile)
             pngService.webpToPng(webpFile)
         }
     }
 
     override fun handleInternal(
-            bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper,
+            bot: TelegramBot, update: Update, messageSource: MessageSourceWrapper,
             userEntity: UserEntity,
     ): Mono<BaseHandler> = statefulMdcMono {
         stateMachine = stateMachine.with { initialState(state.data) }
@@ -149,16 +151,16 @@ class NormalStickerHandler(
     }
 
     sealed class Event(
-            val bot: DefaultAbsSender,
+            val bot: TelegramBot,
             val update: Update,
             val messageSource: MessageSourceWrapper,
             val userEntity: UserEntity,
     ) {
-        class ReceivedMessage(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper, userEntity: UserEntity) : Event(bot, update, messageSource, userEntity)
+        class ReceivedMessage(bot: TelegramBot, update: Update, messageSource: MessageSourceWrapper, userEntity: UserEntity) : Event(bot, update, messageSource, userEntity)
         fun toEventDC(): EventDC = EventDC(bot, update, messageSource, userEntity)
     }
 
-    data class EventDC(val bot: DefaultAbsSender, val update: Update, val messageSource: MessageSourceWrapper, val userEntity: UserEntity)
+    data class EventDC(val bot: TelegramBot, val update: Update, val messageSource: MessageSourceWrapper, val userEntity: UserEntity)
 
     sealed class SideEffect
 

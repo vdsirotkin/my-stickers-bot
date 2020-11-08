@@ -2,11 +2,24 @@
 
 package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
+import com.pengrad.telegrambot.Callback
+import com.pengrad.telegrambot.model.Chat
+import com.pengrad.telegrambot.model.Message
+import com.pengrad.telegrambot.model.Sticker
+import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.request.AddStickerToSet
+import com.pengrad.telegrambot.request.CreateNewStickerSet
+import com.pengrad.telegrambot.request.GetFile
+import com.pengrad.telegrambot.request.SendMessage
+import com.pengrad.telegrambot.response.BaseResponse
+import com.pengrad.telegrambot.response.GetFileResponse
+import com.pengrad.telegrambot.response.SendResponse
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.fillMdc
+import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.service.image.PngService
@@ -19,16 +32,8 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.junit.platform.commons.util.ReflectionUtils
 import org.springframework.context.MessageSource
-import org.telegram.telegrambots.meta.api.methods.GetFile
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
-import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
-import org.telegram.telegrambots.meta.api.objects.File
-import org.telegram.telegrambots.meta.api.objects.Message
-import org.telegram.telegrambots.meta.api.objects.Update
-import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
-import org.telegram.telegrambots.meta.updateshandlers.SentCallback
 import ru.sokomishalov.commons.core.common.unit
 import ru.sokomishalov.commons.core.reactor.awaitStrict
 import java.nio.file.Files
@@ -52,15 +57,15 @@ class NormalStickerHandlerTest {
         val ms = mockkClass(MessageSource::class) {
             every { getMessage(any(), null, any()) } returns ""
         }
-        normalStickerHandler = NormalStickerHandler(pngSticker, spms, spmSender, dao, ms)
+        val fileHelper = FileHelper()
+        normalStickerHandler = NormalStickerHandler(pngSticker, spms, spmSender, fileHelper, dao, ms)
 
         every { bot.retry } returns Retry.of("", RetryConfig.custom<Any>().retryOnException { false }.build())
         every { bot.rateLimiter } returns RateLimiter.ofDefaults("")
-        every { bot.executeAsync(any<SendMessage>(), any()) } answers { (secondArg() as SentCallback<Message>).onResult(null, Message()) }
-        every { bot.executeAsync(any<GetFile>(), any()) } answers { (secondArg() as SentCallback<File>).onResult(null, File()) }
-        every { bot.downloadFile(any<File>(), any()) } returns null
-        every { bot.execute(any<CreateNewStickerSet>()) } returns true
-        every { bot.execute(any<AddStickerToSet>()) } returns true
+        every { bot.execute(any<SendMessage>(), any()) } answers { (secondArg() as Callback<SendMessage, SendResponse>).onResponse(null, ReflectionUtils.newInstance(SendResponse::class.java)) }
+        every { bot.execute(any<GetFile>(), any<Callback<GetFile, GetFileResponse>>()) } answers { (secondArg() as Callback<GetFile, GetFileResponse>).onResponse(null, ReflectionUtils.newInstance(GetFileResponse::class.java)) }
+        every { bot.execute(any<CreateNewStickerSet>(), any()) } answers { (secondArg() as Callback<CreateNewStickerSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java)) }
+        every { bot.execute(any<AddStickerToSet>(), any()) } answers { (secondArg() as Callback<AddStickerToSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java)) }
     }
 
     @BeforeEach
@@ -76,7 +81,7 @@ class NormalStickerHandlerTest {
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
         verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
-        verify(exactly = 2) { bot.executeAsync(any<SendMessage>(), any()) }
+        verify(exactly = 2) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     @Test
@@ -88,7 +93,7 @@ class NormalStickerHandlerTest {
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
         verify(exactly = 1) { bot.execute(any<AddStickerToSet>()) }
-        verify(exactly = 2) { bot.executeAsync(any<SendMessage>(), any()) }
+        verify(exactly = 2) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     @Test
@@ -99,7 +104,7 @@ class NormalStickerHandlerTest {
         val update = buildStickerUpdate()
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
-        verify(exactly = 1) { bot.executeAsync(any<SendMessage>(), any()) }
+        verify(exactly = 1) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     @Test
@@ -112,7 +117,7 @@ class NormalStickerHandlerTest {
         firstResult.handle(bot, update2).fillMdc(CHAT_ID).awaitStrict()
 
         verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
-        verify(exactly = 3) { bot.executeAsync(any<SendMessage>(), any()) }
+        verify(exactly = 3) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     @Test
@@ -127,36 +132,37 @@ class NormalStickerHandlerTest {
         normalStickerHandler.handle(bot, update3).fillMdc(CHAT_ID).awaitStrict()
 
         verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
-        verify(exactly = 4) { bot.executeAsync(any<SendMessage>(), any()) }
+        verify(exactly = 4) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     private fun buildTextUpdate(text: String? = "😀"): Update {
         return mockkClass(Update::class) upd@{
-            every { this@upd.hasMessage() } returns true
             val message = mockkClass(Message::class) msg@{
-                every { this@msg.text } returns text
-                every { this@msg.hasText() } returns true
-                every { this@msg.chatId } returns CHAT_ID
-                every { this@msg.messageId } returns MESSAGE_ID
+                every { this@msg.text() } returns text
+                every { this@msg.chat() } returns mockkClass(Chat::class) cht@{
+                    every {this@cht.id()} returns CHAT_ID
+                }
+                every { this@msg.messageId() } returns MESSAGE_ID
             }
-            every { this@upd.message } returns message
+            every { this@upd.message() } returns message
         }
     }
 
     private fun buildStickerUpdate(emoji: String? = "😀"): Update {
         return mockkClass(Update::class) upd@{
-            every { this@upd.hasMessage() } returns true
             val message = mockkClass(Message::class) msg@{
                 val sticker = mockkClass(Sticker::class) stc@{
-                    every { this@stc.emoji } returns emoji
-                    every { this@stc.fileId } returns ""
-                    every { this@stc.fileUniqueId } returns ""
+                    every { this@stc.emoji() } returns emoji
+                    every { this@stc.fileId() } returns ""
+                    every { this@stc.fileUniqueId() } returns ""
                 }
-                every { this@msg.sticker } returns sticker
-                every { this@msg.chatId } returns CHAT_ID
-                every { this@msg.messageId } returns MESSAGE_ID
+                every { this@msg.sticker() } returns sticker
+                every { this@msg.chat() } returns mockkClass(Chat::class) cht@{
+                    every {this@cht.id()} returns CHAT_ID
+                }
+                every { this@msg.messageId() } returns MESSAGE_ID
             }
-            every { this@upd.message } returns message
+            every { this@upd.message() } returns message
         }
     }
 

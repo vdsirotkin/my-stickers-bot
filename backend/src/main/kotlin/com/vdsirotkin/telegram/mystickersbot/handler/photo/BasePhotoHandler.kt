@@ -1,5 +1,10 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.photo
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
+import com.pengrad.telegrambot.request.EditMessageReplyMarkup
+import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
@@ -15,11 +20,6 @@ import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.service.image.ImageResizer
 import com.vdsirotkin.telegram.mystickersbot.util.*
 import com.vdurmont.emoji.EmojiParser
-import org.telegram.telegrambots.bots.DefaultAbsSender
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup
-import org.telegram.telegrambots.meta.api.objects.Update
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
 
@@ -38,7 +38,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
     private var photoHandlerState = PhotoHandlerState(false, PhotoHandlerData(NEW))
 
     override fun handleInternal(
-            bot: DefaultAbsSender,
+            bot: TelegramBot,
             update: Update,
             messageSource: MessageSourceWrapper,
             userEntity: UserEntity
@@ -46,7 +46,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
         runStateMachine(bot, update, messageSource, userEntity)
     }
 
-    private suspend fun runStateMachine(bot: DefaultAbsSender, update: Update, messageSource: MessageSourceWrapper, user: UserEntity) {
+    private suspend fun runStateMachine(bot: TelegramBot, update: Update, messageSource: MessageSourceWrapper, user: UserEntity) {
         val chatId = determineChatId(update)
         val data = photoHandlerState.data
         when (data.state) {
@@ -58,14 +58,14 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
                 }
                 val message = bot.executeAsync(SendMessage(chatId, messageSource.getMessage("emoji.required")).addEmojiKeyboard())
                 val fileId = getFileId(update)
-                val meta = PhotoMeta(fileId, update.message.messageId, message.messageId)
+                val meta = PhotoMeta(fileId, update.message().messageId(), message.message().messageId())
                 photoHandlerState = photoHandlerState.toWaitingForEmoji(meta)
             }
             WAITING_FOR_EMOJI -> {
                 requireNotNull(data.photoMeta)
                 when {
-                    update.hasMessage() && update.message.hasText() -> {
-                        val emojis = EmojiParser.extractEmojis(update.message.text)
+                    update.message() != null && update.message().text() != null -> {
+                        val emojis = EmojiParser.extractEmojis(update.message().text())
                         if (emojis.isEmpty()) {
                             bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
                             return
@@ -74,9 +74,9 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
                         processPhoto(bot, data.photoMeta.fileId, user, chatId, data.photoMeta.messageId, messageSource, emojiStr)
                         photoHandlerState = photoHandlerState.toFinished()
                     }
-                    update.hasCallbackQuery() -> {
-                        val emojiStr = parseEmoji(update.callbackQuery.data)
-                        bot.executeAsync(EditMessageReplyMarkup().setChatId(chatId).setMessageId(data.photoMeta.emojiMessageId).setReplyMarkup(InlineKeyboardMarkup()))
+                    update.callbackQuery() != null -> {
+                        val emojiStr = parseEmoji(update.callbackQuery().data())
+                        bot.executeAsync(EditMessageReplyMarkup(chatId, data.photoMeta.emojiMessageId).replyMarkup(InlineKeyboardMarkup()))
                         processPhoto(bot, data.photoMeta.fileId, user, chatId, data.photoMeta.messageId, messageSource, emojiStr)
                         photoHandlerState = photoHandlerState.toFinished()
                     }
@@ -89,7 +89,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
     }
 
     private suspend fun processPhoto(
-            bot: DefaultAbsSender, fileId: String,
+            bot: TelegramBot, fileId: String,
             entity: UserEntity,
             chatId: Long,
             messageId: Int,
@@ -148,10 +148,10 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
 
     companion object : Loggable
 
-    override suspend fun cancel(bot: DefaultAbsSender, chatId: Long) {
+    override suspend fun cancel(bot: TelegramBot, chatId: Long) {
         val messageId = photoHandlerState.data.photoMeta?.emojiMessageId
         if (messageId != null) {
-           bot.executeAsync(EditMessageReplyMarkup().apply { this.chatId = chatId.toString(); this.messageId = messageId; this.replyMarkup = InlineKeyboardMarkup() })
+           bot.executeAsync(EditMessageReplyMarkup(chatId, messageId).replyMarkup(InlineKeyboardMarkup()))
         }
     }
 }

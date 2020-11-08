@@ -1,9 +1,14 @@
 package com.vdsirotkin.telegram.mystickersbot.bot
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.TelegramException
+import com.pengrad.telegrambot.UpdatesListener
+import com.pengrad.telegrambot.model.Sticker
+import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.exception.HandlerException
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
-import com.vdsirotkin.telegram.mystickersbot.handler.GroupHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.HandlerFactory
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
 import com.vdsirotkin.telegram.mystickersbot.service.LocalizedMessageSourceProvider
@@ -15,15 +20,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.slf4j.MDCContext
 import org.slf4j.MDC
 import org.springframework.stereotype.Service
-import org.telegram.telegrambots.bots.DefaultBotOptions
-import org.telegram.telegrambots.bots.TelegramLongPollingBot
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.objects.Update
-import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
-import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
 import reactor.kotlin.core.publisher.toMono
 import ru.sokomishalov.commons.core.log.Loggable
 import java.util.*
+import javax.annotation.PostConstruct
 import kotlin.reflect.KClass
 
 @Service
@@ -32,36 +32,44 @@ class MyStickersBot(
         private val handlerFactory: HandlerFactory,
         private val messageSourceProvider: LocalizedMessageSourceProvider,
         val retry: Retry,
-        val rateLimiter: RateLimiter,
-        defaultBotOptions: DefaultBotOptions
-) : TelegramLongPollingBot(defaultBotOptions) {
+        val rateLimiter: RateLimiter
+) : TelegramBot(props.token) {
 
     private val handlerStateMap: MutableMap<Long, HandlerState<*>> = mutableMapOf()
 
-    override fun onUpdateReceived(update: Update) {
-        if (isGroup(update)) {
-            handleGroup(update)
-            return
+    @PostConstruct
+    fun init() {
+        this.setUpdatesListener {
+            it.forEach {
+                onUpdateReceived(it)
+            }
+            UpdatesListener.CONFIRMED_UPDATES_ALL
         }
+    }
+
+    fun onUpdateReceived(update: Update) {
+//        if (isGroup(update)) {
+//            handleGroup(update)
+//            return
+//        }
         val chatId = determineChatId(update)
-        if (update.message?.text == "/cancel") {
+        if (update.message()?.text() == "/cancel") {
             handleCancel(chatId)
             return
         }
         val handler: BaseHandler = when {
-            update.hasCallbackQuery() -> when {
-                update.callbackQuery.data.contains(setLanguageCommandPrefix) -> handlerFactory.setLanguageHandler
-                update.callbackQuery.data.startsWith(chooseEmoji) -> processEmojiQuery(chatId)
+            update.callbackQuery() != null -> when {
+                update.callbackQuery().data().contains(setLanguageCommandPrefix) -> handlerFactory.setLanguageHandler
+                update.callbackQuery().data().startsWith(chooseEmoji) -> processEmojiQuery(chatId)
                 else -> handlerFactory.unknownMessageHandler
             }
             handlerStateMap.containsKey(chatId) -> prepareStatefulHandler(chatId)
-            update.message?.text in arrayOf("/start", "/help")  -> handlerFactory.startHandler
-            update.message?.text == "/language" -> handlerFactory.languageHandler
-            update.message?.text == "/delete" -> handlerFactory.deleteHandler
-            update.message?.hasSticker() == true -> processSticker(update.message.sticker)
-            update.message?.hasPhoto() == true -> handlerFactory.photoHandler
-            update.message?.hasDocument() == true -> handlerFactory.documentHandler
-            update.message?.newChatMembers?.isNotEmpty() == true -> GroupHandler(chatId)
+            update.message()?.text() in arrayOf("/start", "/help")  -> handlerFactory.startHandler
+            update.message()?.text() == "/language" -> handlerFactory.languageHandler
+            update.message()?.text() == "/delete" -> handlerFactory.deleteHandler
+            update.message()?.sticker() != null -> processSticker(update.message().sticker())
+            update.message()?.photo() != null -> handlerFactory.photoHandler
+            update.message()?.document() != null -> handlerFactory.documentHandler
             else -> handlerFactory.unknownMessageHandler
         }
 
@@ -102,14 +110,14 @@ class MyStickersBot(
 
     private fun handleGroup(update: Update) {
         GlobalScope.launch {
-            executeAsync(SendMessage(update.message.chatId, GROUP_MESSAGE))
+            executeAsync(SendMessage(update.message().chat().id(), GROUP_MESSAGE))
         }
     }
 
-    private fun isGroup(update: Update): Boolean {
-        val chat = update.message?.chat ?: return false
-        return (chat.isGroupChat && chat.isSuperGroupChat && chat.isChannelChat)
-    }
+//    private fun isGroup(update: Update): Boolean {
+//        val chat = update.message?.chat ?: return false
+//        return (chat.isGroupChat && chat.isSuperGroupChat && chat.isChannelChat)
+//    }
 
     private fun processEmojiQuery(chatId: Long): BaseHandler {
         return if (handlerStateMap.containsKey(chatId)) {
@@ -120,8 +128,8 @@ class MyStickersBot(
     }
 
     private fun logException(t: Throwable) {
-        if (t is TelegramApiRequestException) {
-            logger.error("Telegram api error: ${t.apiResponse}, code: ${t.errorCode}", t)
+        if (t is TelegramException) {
+            logger.error("Telegram api error: ${t.response()}, code: ${t.response().errorCode()}", t)
         } else {
             logger.error("Error occurred, message: ${t.message}", t)
         }
@@ -157,7 +165,7 @@ class MyStickersBot(
     }
 
     private fun processSticker(sticker: Sticker): BaseHandler {
-        return if (sticker.animated) {
+        return if (sticker.isAnimated) {
             handlerFactory.animatedStickerHandler
         } else {
             handlerFactory.normalStickerHandler
@@ -176,9 +184,7 @@ class MyStickersBot(
         }
     }
 
-    override fun getBotUsername(): String = props.username
-
-    override fun getBotToken(): String = props.token
+    fun getBotUsername(): String = props.username
 
     companion object : Loggable
 }

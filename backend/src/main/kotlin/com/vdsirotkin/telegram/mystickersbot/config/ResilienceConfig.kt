@@ -1,5 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.config
 
+import com.pengrad.telegrambot.TelegramException
 import io.github.resilience4j.core.IntervalFunction
 import io.github.resilience4j.ratelimiter.RateLimiter
 import io.github.resilience4j.ratelimiter.RateLimiterConfig
@@ -7,7 +8,6 @@ import io.github.resilience4j.retry.Retry
 import io.github.resilience4j.retry.RetryConfig
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
 import java.time.Duration
 import java.time.Duration.ofSeconds
 
@@ -20,7 +20,7 @@ class ResilienceConfig {
                 .intervalFunction(IntervalFunction.ofExponentialBackoff(ofSeconds(1).toMillis(), 2.0))
                 .retryOnException {
                     when (it) {
-                        is TelegramApiRequestException -> it.errorCode == 429
+                        is TelegramException -> it.response().errorCode() == 429
                         else -> true
                     }
                 }

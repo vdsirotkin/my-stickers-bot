@@ -1,5 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.db
 
+import com.pengrad.telegrambot.model.Sticker
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
@@ -7,7 +8,6 @@ import org.springframework.data.mongodb.core.findById
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Repository
-import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import ru.sokomishalov.commons.core.reactor.await
 import ru.sokomishalov.commons.core.reactor.awaitStrict
 import ru.sokomishalov.commons.core.reactor.awaitUnit
@@ -22,8 +22,8 @@ class StickerDAO(
                               isAnimated: Boolean): Boolean {
         val stickerPackContains = entity.let {
             if (isAnimated) it.animatedPackSet else it.normalPackSet
-        }.firstOrNull { it.fileId == sticker.fileUniqueId }?.let { true } ?: false
-        val thisBotSticker = sticker.setName == if (isAnimated) entity.animatedPackName else entity.normalPackName
+        }.firstOrNull { it.fileId == sticker.fileUniqueId() }?.let { true } ?: false
+        val thisBotSticker = sticker.setName() == if (isAnimated) entity.animatedPackName else entity.normalPackName
         return stickerPackContains || thisBotSticker
     }
 

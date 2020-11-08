@@ -1,5 +1,12 @@
 package com.vdsirotkin.telegram.mystickersbot.util
 
+import com.pengrad.telegrambot.Callback
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
+import com.pengrad.telegrambot.request.*
+import com.pengrad.telegrambot.response.BaseResponse
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
 import io.github.resilience4j.kotlin.ratelimiter.executeSuspendFunction
 import io.github.resilience4j.kotlin.retry.executeSuspendFunction
@@ -11,26 +18,13 @@ import kotlinx.coroutines.slf4j.MDCContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.slf4j.MDC
-import org.telegram.telegrambots.bots.DefaultAbsSender
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod
-import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
-import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
-import org.telegram.telegrambots.meta.api.methods.stickers.DeleteStickerFromSet
-import org.telegram.telegrambots.meta.api.objects.Update
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
-import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
-import org.telegram.telegrambots.meta.updateshandlers.DownloadFileCallback
-import org.telegram.telegrambots.meta.updateshandlers.SentCallback
 import reactor.core.publisher.Mono
 import reactor.util.context.Context
 import ru.sokomishalov.commons.core.log.loggerFor
 import java.io.BufferedReader
 import java.io.File
+import java.io.IOException
 import java.io.InputStreamReader
-import java.io.Serializable
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.resume
@@ -38,7 +32,7 @@ import kotlin.coroutines.resume
 val DELETE_TEMP = System.getProperty("delete.temp", "true")!!.toBoolean()
 
 fun SendMessage.addInlineKeyboard(title: String, url: String): SendMessage {
-    this.replyMarkup = InlineKeyboardMarkup(listOf(listOf(InlineKeyboardButton(title).setUrl(url))))
+    replyMarkup(InlineKeyboardMarkup(arrayOf(InlineKeyboardButton(title).url(url))))
     return this
 }
 
@@ -88,27 +82,23 @@ suspend fun <T> withTempFiles(file: Array<File>, context: CoroutineContext = Dis
     }
 }
 
-suspend fun <T : Serializable> DefaultAbsSender.executeAsync(method: BotApiMethod<T>): T {
+suspend fun <T : BaseRequest<T, R>, R : BaseResponse> TelegramBot.executeAsync(method: T): R {
     return wrapApiCall {
-        suspendCancellableCoroutine<T> { cont ->
-            this.executeAsync(method, object : SentCallback<T> {
-                override fun onResult(method: BotApiMethod<T>?, p1: T) {
-                    cont.resume(p1)
+        suspendCancellableCoroutine { cont ->
+            execute(method, object : Callback<T, R> {
+                override fun onResponse(request: T?, response: R) {
+                    cont.resume(response)
                 }
 
-                override fun onException(method: BotApiMethod<T>?, p1: Exception?) {
-                    cont.cancel(p1)
-                }
-
-                override fun onError(method: BotApiMethod<T>?, p1: TelegramApiRequestException?) {
-                    cont.cancel(p1)
+                override fun onFailure(request: T?, e: IOException?) {
+                    cont.cancel(e)
                 }
             })
         }
     }
 }
 
-suspend fun <T> DefaultAbsSender.wrapApiCall(block: suspend DefaultAbsSender.() -> T): T {
+suspend fun <T> TelegramBot.wrapApiCall(block: suspend TelegramBot.() -> T): T {
     return if (this is MyStickersBot) {
         retry.executeSuspendFunction {
             rateLimiter.executeSuspendFunction {
@@ -120,28 +110,12 @@ suspend fun <T> DefaultAbsSender.wrapApiCall(block: suspend DefaultAbsSender.() 
     }
 }
 
-suspend fun DefaultAbsSender.executeStickerPackAction(method: PartialBotApiMethod<Boolean>) {
+suspend fun <T : BaseRequest<T, R>, R : BaseResponse> TelegramBot.executeStickerPackAction(method: BaseRequest<T, R>) {
     when (method) {
         is CreateNewStickerSet -> wrapApiCall { execute(method) }
         is AddStickerToSet -> wrapApiCall { execute(method) }
         is DeleteStickerFromSet -> wrapApiCall { execute(method) }
         else -> throw UnsupportedOperationException("${method.javaClass} is not supported by executeStickerPack")
-    }
-}
-
-suspend fun DefaultAbsSender.downloadFileAsync(filePath: String): File {
-    return wrapApiCall {
-        suspendCancellableCoroutine<File> { cont ->
-            this.downloadFileAsync(filePath, object : DownloadFileCallback<String?> {
-                override fun onResult(p0: String?, p1: File?) {
-                    cont.resume(p1!!)
-                }
-
-                override fun onException(p0: String?, p1: java.lang.Exception?) {
-                    cont.cancel(p1)
-                }
-            })
-        }
     }
 }
 
@@ -167,8 +141,8 @@ fun CoroutineContext.resolveMdc() {
 
 fun determineChatId(update: Update): Long {
     return when {
-        update.hasMessage() -> update.message.chatId
-        update.hasCallbackQuery() -> update.callbackQuery.from.id.toLong()
+        update.message() != null -> update.message().chat().id()
+        update.callbackQuery() != null -> update.callbackQuery().from().id().toLong()
         else -> throw IllegalArgumentException("Unsupported message type")
     }
 }

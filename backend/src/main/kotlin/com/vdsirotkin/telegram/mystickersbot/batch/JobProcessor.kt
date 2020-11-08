@@ -1,5 +1,8 @@
 package com.vdsirotkin.telegram.mystickersbot.batch
 
+import com.pengrad.telegrambot.TelegramException
+import com.pengrad.telegrambot.model.request.ParseMode
+import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
 import com.vdsirotkin.telegram.mystickersbot.db.entity.BatchJobStatus
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserStatus
@@ -9,8 +12,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.slf4j.MDC
 import org.springframework.stereotype.Service
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
 import ru.sokomishalov.commons.core.collections.aMap
 import ru.sokomishalov.commons.core.log.Loggable
 
@@ -31,7 +32,7 @@ class JobProcessor(
             }
             nextBatch.aMap { chatId: Long ->
                 val result = runCatching {
-                    bot.executeAsync(SendMessage(chatId, text).enableHtml(true))
+                    bot.executeAsync(SendMessage(chatId, text).parseMode(ParseMode.HTML))
                 }
                 if (result.isSuccess) {
                     chatId to BatchJobStatus.SUCCESS
@@ -48,8 +49,8 @@ class JobProcessor(
     }
 
     private fun logException(e: Throwable, it: Long) {
-        if (e is TelegramApiRequestException) {
-            logger.warn("Can't send to user $it, message: ${e.message}, result: ${e.apiResponse}, errorCode: ${e.errorCode}")
+        if (e is TelegramException) {
+            logger.warn("Can't send to user $it, message: ${e.message}, result: ${e.response()}, errorCode: ${e.response().errorCode()}")
         } else {
             logger.warn("Can't send to user $it, message: ${e.message}", e)
         }

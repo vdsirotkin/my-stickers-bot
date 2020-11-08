@@ -1,5 +1,11 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.common
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
+import com.pengrad.telegrambot.request.DeleteStickerFromSet
+import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
@@ -16,12 +22,6 @@ import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.MessageSource
 import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Component
-import org.telegram.telegrambots.bots.DefaultAbsSender
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.stickers.DeleteStickerFromSet
-import org.telegram.telegrambots.meta.api.objects.Update
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import reactor.core.publisher.Mono
 
 @Component
@@ -33,24 +33,24 @@ class DeleteHandler(
     private var state: DeleteHandlerState = DeleteHandlerState(NEW, false)
 
     override fun handleInternal(
-            bot: DefaultAbsSender, update: Update,
+            bot: TelegramBot, update: Update,
             messageSource: MessageSourceWrapper,
             userEntity: UserEntity
     ): Mono<BaseHandler> = statefulMdcMono {
-        val chatId = update.message.chatId
+        val chatId = update.message().chat().id()
         when (state.data) {
             NEW -> {
                 bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.start")).addKeyboard(userEntity, messageSource))
                 state = state.copy(data = PROCESSING)
             }
             PROCESSING -> {
-                if (update.message.hasSticker()) {
-                    val sticker = update.message.sticker
-                    val animated = sticker.animated
+                if (update.message().sticker() != null) {
+                    val sticker = update.message().sticker()
+                    val animated = sticker.isAnimated
                     val packName = if (animated) userEntity.animatedPackName else userEntity.normalPackName
-                    if (sticker.setName == packName) {
-                        bot.executeStickerPackAction(DeleteStickerFromSet(sticker.fileId))
-                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.success")).setReplyToMessageId(update.message.messageId))
+                    if (sticker.setName() == packName) {
+                        bot.executeStickerPackAction(DeleteStickerFromSet(sticker.fileId()))
+                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.success")).replyToMessageId(update.message().messageId()))
                         state = state.copy(finished = true)
                     } else {
                         bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.not.my.sticker")).addKeyboard(userEntity, messageSource))
@@ -77,11 +77,11 @@ class DeleteHandler(
     }
 
     private fun SendMessage.addKeyboard(entity: UserEntity, messageSource: MessageSourceWrapper): SendMessage {
-        return setReplyMarkup(
-                InlineKeyboardMarkup(listOf(listOf(
-                        InlineKeyboardButton(messageSource.getMessage("sticker.pack.button.text")).setUrl(packLink(entity.normalPackName)),
-                        InlineKeyboardButton(messageSource.getMessage("animated.sticker.pack.button.text")).setUrl(packLink(entity.animatedPackName))
-                )))
+        return replyMarkup(
+                InlineKeyboardMarkup(arrayOf(
+                        InlineKeyboardButton(messageSource.getMessage("sticker.pack.button.text")).url(packLink(entity.normalPackName)),
+                        InlineKeyboardButton(messageSource.getMessage("animated.sticker.pack.button.text")).url(packLink(entity.animatedPackName))
+                ))
         )
     }
 

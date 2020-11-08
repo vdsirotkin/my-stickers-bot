@@ -1,8 +1,8 @@
 package com.vdsirotkin.telegram.mystickersbot.util
 
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
+import com.pengrad.telegrambot.request.SendMessage
 
 private val emojiMap = mapOf(
         "laughing" to "\uD83D\uDE02",
@@ -20,9 +20,10 @@ private val emojiMap = mapOf(
 fun SendMessage.addEmojiKeyboard(): SendMessage {
     return emojiMap
             .entries
-            .map { InlineKeyboardButton(it.value).setCallbackData("$chooseEmoji${it.key}") }
+            .map { InlineKeyboardButton(it.value).callbackData("$chooseEmoji${it.key}") }
             .chunked(5)
-            .let { this.setReplyMarkup(InlineKeyboardMarkup(it)) }
+            .map { it.toTypedArray() }
+            .let { this.replyMarkup(InlineKeyboardMarkup(*it.toTypedArray())) }
 }
 
 fun parseEmoji(data: String): String {
