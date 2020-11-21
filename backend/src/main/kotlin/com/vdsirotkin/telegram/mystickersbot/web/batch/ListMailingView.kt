@@ -13,26 +13,29 @@ class ListMailingView(
 ): KComposite() {
 
     private val root = ui {
-        horizontalLayout {
-            val list = runBlocking { jobManager.listJobs() }
-            if (list.isEmpty()) {
-                div("info-panel") {
-                    text = "Nothing found :("
-                }
-            } else {
-                ul {
-                    list.forEach { pair ->
-                        li {
-                            button(text = pair.second).apply {
-                                onLeftClick { showMailing(pair.first) }
+        verticalLayout {
+            h1("Mailing list")
+            horizontalLayout {
+                val list = runBlocking { jobManager.listJobs() }
+                if (list.isEmpty()) {
+                    div("info-panel") {
+                        text = "Nothing found :("
+                    }
+                } else {
+                    ul {
+                        list.forEach { pair ->
+                            li {
+                                button(text = pair.second).apply {
+                                    onLeftClick { showMailing(pair.first) }
+                                }
                             }
                         }
                     }
                 }
-            }
-            button("New") {
-                onLeftClick { ui.ifPresent { it.navigate(NewMailingView::class.java) } }
-                setPrimary()
+                button("New") {
+                    onLeftClick { ui.ifPresent { it.navigate(NewMailingView::class.java) } }
+                    setPrimary()
+                }
             }
         }
     }
