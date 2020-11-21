@@ -22,18 +22,17 @@ class SendMessageView(
 
     private val root = ui {
         binder.bean = SendMessageRequest()
-        horizontalLayout {
-            verticalLayout {
-                userId = textField("User id")
-                text = textArea("Message")
-                val button = button("Send") {
-                    onLeftClick { handleSendMessage() }
-                }
-                binder.forMemberField(userId).asRequired().bind(SendMessageRequest::userId)
-                binder.forMemberField(text).asRequired().bind(SendMessageRequest::text)
-                binder.addStatusChangeListener {
-                    button.isEnabled = !it.hasValidationErrors()
-                }
+        verticalLayout {
+            h1("Send")
+            userId = textField("User id")
+            text = textArea("Message")
+            val button = button("Send") {
+                onLeftClick { handleSendMessage() }
+            }
+            binder.forMemberField(userId).asRequired().bind(SendMessageRequest::userId)
+            binder.forMemberField(text).asRequired().bind(SendMessageRequest::text)
+            binder.addStatusChangeListener {
+                button.isEnabled = !it.hasValidationErrors()
             }
         }
     }

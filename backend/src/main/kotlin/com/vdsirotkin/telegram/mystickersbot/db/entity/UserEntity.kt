@@ -4,7 +4,9 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import java.util.*
 
-@Document
+const val USER_ENTITY_COLLECTION_NAME = "userEntity"
+
+@Document(collection = USER_ENTITY_COLLECTION_NAME)
 data class UserEntity(
         @field:Id
         val userId: String,

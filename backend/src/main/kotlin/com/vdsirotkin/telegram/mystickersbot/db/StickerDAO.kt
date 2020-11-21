@@ -1,9 +1,12 @@
 package com.vdsirotkin.telegram.mystickersbot.db
 
 import com.pengrad.telegrambot.model.Sticker
+import com.vdsirotkin.telegram.mystickersbot.db.entity.USER_ENTITY_COLLECTION_NAME
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
+import kotlinx.coroutines.reactive.awaitFirstOrElse
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
+import org.springframework.data.mongodb.core.aggregation.Aggregation
 import org.springframework.data.mongodb.core.findById
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
@@ -85,6 +88,26 @@ class StickerDAO(
                 }
                 .flatMap { template.save(it) }
                 .awaitUnit()
+    }
+
+    suspend fun countNormalAddedStickers(): Long {
+        return template.aggregate(
+                Aggregation.newAggregation(
+                        Aggregation.unwind("normalPackSet"),
+                        Aggregation.replaceRoot("normalPackSet"),
+                        Aggregation.count().`as`("count")
+                ), USER_ENTITY_COLLECTION_NAME, BatchJobDAO.Count::class.java
+        ).awaitFirstOrElse { BatchJobDAO.Count(0) }.count
+    }
+
+    suspend fun countAnimatedAddedStickers(): Long {
+        return template.aggregate(
+                Aggregation.newAggregation(
+                        Aggregation.unwind("animatedPackSet"),
+                        Aggregation.replaceRoot("animatedPackSet"),
+                        Aggregation.count().`as`("count")
+                ), USER_ENTITY_COLLECTION_NAME, BatchJobDAO.Count::class.java
+        ).awaitFirstOrElse { BatchJobDAO.Count(0) }.count
     }
 
 }

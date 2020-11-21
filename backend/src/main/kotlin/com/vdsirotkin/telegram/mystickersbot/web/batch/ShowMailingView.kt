@@ -27,33 +27,31 @@ class ShowMailingView(
 
     private val root = ui {
         startAsyncPush()
-        horizontalLayout {
-            verticalLayout {
-                button("Back").apply {
-                    onLeftClick { ui.ifPresent { it.navigate(ListMailingView::class.java) } }
+        verticalLayout {
+            button("Back").apply {
+                onLeftClick { ui.ifPresent { it.navigate(ListMailingView::class.java) } }
+            }
+            h2().also { binder.forField(it.toHasValue()).bind(BatchViewInfo::name) }
+            article {
+                span("ID: ") {
+                    span().also { binder.forField(it.toHasValue()).bind(BatchViewInfo::id) }
                 }
-                h2().also { binder.forField(it.toHasValue()).bind(BatchViewInfo::name) }
-                article {
-                    span("ID: ") {
-                        span().also { binder.forField(it.toHasValue()).bind(BatchViewInfo::id) }
-                    }
-                    br()
-                    span("Text: ") {
-                        span().also { binder.forField(it.toHasValue()).bind(BatchViewInfo::text) }
-                    }
-                    br()
-                    span("Processed: ") {
-                        span().also { binder.forField(it.toHasValue()).bind({ it.processedCount.toString() }, { _, _ -> }) }
-                        text(" from ")
-                        span().also { binder.forField(it.toHasValue()).bind({ it.overallCount.toString() }, { _, _ -> }) }
-                    }
-                    br()
-                    span("Status: ") {
-                        span().also { binder.forField(it.toHasValue()).bind({ it.errorCount.toString() }, { _, _ -> }) }
-                        text(" errors, ")
-                        span().also { binder.forField(it.toHasValue()).bind({ it.successCount.toString() }, { _, _ -> }) }
-                        text(" successes.")
-                    }
+                br()
+                span("Text: ") {
+                    span().also { binder.forField(it.toHasValue()).bind(BatchViewInfo::text) }
+                }
+                br()
+                span("Processed: ") {
+                    span().also { binder.forField(it.toHasValue()).bind({ it.processedCount.toString() }, { _, _ -> }) }
+                    text(" from ")
+                    span().also { binder.forField(it.toHasValue()).bind({ it.overallCount.toString() }, { _, _ -> }) }
+                }
+                br()
+                span("Status: ") {
+                    span().also { binder.forField(it.toHasValue()).bind({ it.errorCount.toString() }, { _, _ -> }) }
+                    text(" errors, ")
+                    span().also { binder.forField(it.toHasValue()).bind({ it.successCount.toString() }, { _, _ -> }) }
+                    text(" successes.")
                 }
             }
         }
