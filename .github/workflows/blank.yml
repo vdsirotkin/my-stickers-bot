@@ -30,13 +30,13 @@ jobs:
           java-version: 11
       - name: Setup Maven
         uses: stCarolas/setup-maven@v4
-      - name: Cache
-        uses: actions/cache@v2.1.1
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
         with:
-          # A list of files, directories, and wildcard patterns to cache and restore
-          path: ~/.m2/**
-          # An explicit key for restoring and saving the cache
-          key: maven_deps
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
       - name: Build and test
         run: mvn --no-transfer-progress clean test
 
