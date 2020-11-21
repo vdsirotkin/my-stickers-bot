@@ -1,13 +1,14 @@
 package com.vdsirotkin.telegram.mystickersbot.web
 
 import com.github.mvysny.karibudsl.v10.*
+import com.pengrad.telegrambot.model.request.ParseMode
+import com.pengrad.telegrambot.request.SendMessage
 import com.vaadin.flow.component.notification.Notification
 import com.vaadin.flow.component.textfield.TextArea
 import com.vaadin.flow.component.textfield.TextField
 import com.vaadin.flow.data.binder.Binder
 import com.vaadin.flow.router.Route
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import ru.sokomishalov.commons.core.log.Loggable
 
 @Route(value = "send/message", layout = MainLayout::class)
@@ -42,7 +43,7 @@ class SendMessageView(
 
         val (userIdValue, textValue) = binder.bean
         try {
-            bot.execute(SendMessage(userIdValue, textValue).enableHtml(true))
+            bot.execute(SendMessage(userIdValue, textValue).parseMode(ParseMode.HTML))
             Notification.show("Successfully sent")
         } catch (e: Exception) {
             logError("Can't send to user: ${e.message}", e)

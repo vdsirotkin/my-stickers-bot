@@ -1,5 +1,10 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.request.AddStickerToSet
+import com.pengrad.telegrambot.request.CreateNewStickerSet
+import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
@@ -10,11 +15,6 @@ import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.util.*
 import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
-import org.telegram.telegrambots.bots.DefaultAbsSender
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet
-import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet
-import org.telegram.telegrambots.meta.api.objects.Update
 import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
 import java.io.File
@@ -31,50 +31,51 @@ class AnimatedStickerHandler(
 ) : LocalizedHandler {
 
     override fun handleInternal(
-            bot: DefaultAbsSender, update: Update,
+            bot: TelegramBot, update: Update,
             messageSource: MessageSourceWrapper,
             userEntity: UserEntity
     ): Mono<BaseHandler> = mdcMono {
-        val chatId = update.message!!.chat.id
-        val sticker = update.message!!.sticker!!
+        val chatId = update.message().chat().id()
+        val sticker = update.message().sticker()
         logger.info(sticker.toString())
 
         if (dao.stickerExists(userEntity, sticker, true)) {
-            bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).setReplyToMessageId(update.message!!.messageId))
+            bot.executeAsync(SendMessage(chatId, messageSource["sticker.already.added"]).replyToMessageId(update.message().messageId()))
             return@mdcMono
         }
-        val stickerFile = fileHelper.downloadFile(bot, sticker.fileId)
+        val stickerFile = fileHelper.downloadFile(bot, sticker.fileId())
         if (userEntity.animatedPackCreated) {
             optimizeIfNecessary(stickerFile) {
-                bot.wrapApiCall {
-                    bot.execute(AddStickerToSet(chatId.toInt(), userEntity.animatedPackName, sticker.emoji ?: "🙂")
-                            .setTgsSticker(it)
-                            .setMaskPosition(sticker.maskPosition)
-                    )
-                }
+                bot.executeAsync(AddStickerToSet.tgsSticker(chatId.toInt(), userEntity.animatedPackName, sticker.emoji() ?: "🙂", it)
+                        .apply {
+                            if (sticker.maskPosition() != null) {
+                                maskPosition(sticker.maskPosition())
+                            }
+                        })
             }
             bot.executeAsync(
-                    SendMessage(chatId, messageSource.getMessage("sticker.added"))
-                            .setReplyToMessageId(update.message!!.messageId)
-                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), packLink(userEntity.animatedPackName))
+                    SendMessage(chatId, messageSource["sticker.added"])
+                            .replyToMessageId(update.message().messageId())
+                            .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
             )
         } else {
             optimizeIfNecessary(stickerFile) {
-                bot.wrapApiCall {
-                    bot.execute(CreateNewStickerSet(chatId.toInt(), userEntity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji ?: "🙂")
-                            .setTgsSticker(it)
-                            .apply { containsMasks = sticker.maskPosition != null; maskPosition = sticker.maskPosition }
-                    )
-                }
+                bot.executeAsync(CreateNewStickerSet.tgsSticker(chatId.toInt(), userEntity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji() ?: "🙂", it)
+                        .apply {
+                            if (sticker.maskPosition() != null) {
+                                maskPosition(sticker.maskPosition())
+                            }
+                        }
+                )
             }
             dao.setCreatedStatus(chatId, animatedStickerCreated = true)
             bot.executeAsync(
-                    SendMessage(chatId, messageSource.getMessage("created.pack"))
-                            .setReplyToMessageId(update.message!!.messageId)
-                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), packLink(userEntity.animatedPackName))
+                    SendMessage(chatId, messageSource["created.pack"])
+                            .replyToMessageId(update.message().messageId())
+                            .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
             )
         }
-        dao.saveSticker(chatId, StickerMeta(sticker.fileId, sticker.fileUniqueId, sticker.emoji), true)
+        dao.saveSticker(chatId, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji()), true)
     }.thenReturn(this)
 
     private suspend fun optimizeIfNecessary(originalFile: File, block: suspend (File) -> Unit) {

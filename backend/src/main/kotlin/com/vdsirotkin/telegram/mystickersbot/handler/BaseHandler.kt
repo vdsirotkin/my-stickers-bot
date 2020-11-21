@@ -1,13 +1,13 @@
 package com.vdsirotkin.telegram.mystickersbot.handler
 
-import org.telegram.telegrambots.bots.DefaultAbsSender
-import org.telegram.telegrambots.meta.api.objects.Update
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.Update
 import reactor.core.publisher.Mono
 
 
 @FunctionalInterface
 interface BaseHandler {
 
-    fun handle(bot: DefaultAbsSender, update: Update): Mono<BaseHandler>
+    fun handle(bot: TelegramBot, update: Update): Mono<BaseHandler>
 
 }

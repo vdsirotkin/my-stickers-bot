@@ -1,6 +1,7 @@
 package com.vdsirotkin.telegram.mystickersbot.web
 
 import com.github.mvysny.karibudsl.v10.*
+import com.pengrad.telegrambot.request.GetChat
 import com.vaadin.flow.component.Key
 import com.vaadin.flow.component.html.Article
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
@@ -8,7 +9,6 @@ import com.vaadin.flow.component.textfield.TextField
 import com.vaadin.flow.data.binder.Binder
 import com.vaadin.flow.router.Route
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
-import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChat
 import ru.sokomishalov.commons.core.log.Loggable
 
 const val SEARCH_USER = "search/user"
@@ -52,11 +52,11 @@ class SearchUserView(
         if (result.isSuccess) {
             val chat = result.getOrNull()
             val newInfo = Article().apply {
-                span("Username: ${chat?.userName}")
+                span("Username: ${chat?.chat()?.username()}")
                 br()
-                span("First name: ${chat?.firstName}")
+                span("First name: ${chat?.chat()?.firstName()}")
                 br()
-                span("Last name: ${chat?.lastName}")
+                span("Last name: ${chat?.chat()?.lastName()}")
             }
             layout.replace(currentUserInfo, newInfo)
             currentUserInfo = newInfo

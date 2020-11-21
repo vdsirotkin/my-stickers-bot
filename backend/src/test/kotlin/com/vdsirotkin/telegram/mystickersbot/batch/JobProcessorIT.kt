@@ -1,5 +1,8 @@
 package com.vdsirotkin.telegram.mystickersbot.batch
 
+import com.pengrad.telegrambot.Callback
+import com.pengrad.telegrambot.request.SendMessage
+import com.pengrad.telegrambot.response.SendResponse
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
 import com.vdsirotkin.telegram.mystickersbot.db.BatchJobDAO
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
@@ -16,17 +19,15 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.platform.commons.util.ReflectionUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.test.context.junit.jupiter.SpringExtension
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.objects.Message
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException
-import org.telegram.telegrambots.meta.updateshandlers.SentCallback
 import ru.sokomishalov.commons.core.common.unit
 import ru.sokomishalov.commons.core.reactor.awaitStrict
+import java.io.IOException
 import java.lang.System.currentTimeMillis
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
@@ -52,13 +53,13 @@ class JobProcessorIT {
             every { retry } returns Retry.of("", RetryConfig.custom<Any>().retryOnException { false }.build())
             every { rateLimiter } returns RateLimiter.ofDefaults("")
             every {
-                executeAsync(any<SendMessage>(), any<SentCallback<Message>>())
+                execute(any<SendMessage>(), any<Callback<SendMessage, SendResponse>>())
             } answers {
                 val int = random.nextInt(1, 100)
                 if (int > 50) {
-                    (secondArg() as SentCallback<Message>).onException(null, TelegramApiException("Some error occured"))
+                    (secondArg() as Callback<SendMessage, SendResponse>).onFailure(null, IOException())
                 } else {
-                    (secondArg() as SentCallback<Message>).onResult(null, Message())
+                    (secondArg() as Callback<SendMessage, SendResponse>).onResponse(null, ReflectionUtils.newInstance(SendResponse::class.java))
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.photo
 
+import com.pengrad.telegrambot.model.Update
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
@@ -9,7 +10,6 @@ import org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE
 import org.springframework.context.MessageSource
 import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Component
-import org.telegram.telegrambots.meta.api.objects.Update
 
 @Component
 @Scope(SCOPE_PROTOTYPE)
@@ -25,11 +25,11 @@ class DocumentHandler(override val stickerPackMessagesSender: StickerPackMessage
     private val supportedTypes: Array<String> = arrayOf("image/jpeg", "image/png")
 
     override fun canBeProcessed(update: Update): Boolean {
-        val document = update.message.document
-        return document.mimeType in supportedTypes
+        val document = update.message().document()
+        return document.mimeType() in supportedTypes
     }
 
-    override fun getFileId(update: Update): String = update.message.document.fileId
+    override fun getFileId(update: Update): String = update.message().document().fileId()
 
 
 }

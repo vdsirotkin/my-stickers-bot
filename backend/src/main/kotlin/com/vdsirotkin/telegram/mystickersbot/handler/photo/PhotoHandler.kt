@@ -1,5 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.photo
 
+import com.pengrad.telegrambot.model.Update
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
@@ -9,7 +10,6 @@ import org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE
 import org.springframework.context.MessageSource
 import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Component
-import org.telegram.telegrambots.meta.api.objects.Update
 import ru.sokomishalov.commons.core.log.Loggable
 
 @Component
@@ -25,11 +25,11 @@ class PhotoHandler(override val stickerPackMessagesSender: StickerPackMessagesSe
     override fun canBeProcessed(update: Update): Boolean = true
 
     override fun getFileId(update: Update): String {
-        val photos = update.message.photo
+        val photos = update.message().photo()
         logger.info("Received photos: $photos")
-        val photo = photos.maxByOrNull { it.fileSize }!!
+        val photo = photos.maxByOrNull { it.fileSize() }!!
         logger.info("Selected photo: $photo")
-        return photo.fileId
+        return photo.fileId()
     }
 
     companion object : Loggable
