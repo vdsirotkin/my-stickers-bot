@@ -28,12 +28,12 @@ class UnknownMessageHandler(override val stickerDao: StickerDAO,
         when {
             update.message() != null -> {
                 logger.info("Received some spam: ${update.message().text()}")
-                bot.executeAsync(SendMessage(update.message().chat().id(), messageSource.getMessage("unknown.text")))
+                bot.executeAsync(SendMessage(update.message().chat().id(), messageSource["unknown.text"]))
             }
             update.callbackQuery()!=null -> {
                 logger.info("Received dangling inline query")
                 bot.executeAsync(AnswerCallbackQuery(update.callbackQuery().id())
-                        .text(messageSource.getMessage("unknown.inline.query")))
+                        .text(messageSource["unknown.inline.query"]))
             }
             else -> {}
         }

@@ -40,34 +40,39 @@ class AnimatedStickerHandler(
         logger.info(sticker.toString())
 
         if (dao.stickerExists(userEntity, sticker, true)) {
-            bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).replyToMessageId(update.message().messageId()))
+            bot.executeAsync(SendMessage(chatId, messageSource["sticker.already.added"]).replyToMessageId(update.message().messageId()))
             return@mdcMono
         }
         val stickerFile = fileHelper.downloadFile(bot, sticker.fileId())
         if (userEntity.animatedPackCreated) {
             optimizeIfNecessary(stickerFile) {
-                bot.executeStickerPackAction(AddStickerToSet.tgsSticker(chatId.toInt(), userEntity.animatedPackName, sticker.emoji() ?: "🙂", it)
-                        .maskPosition(sticker.maskPosition()))
+                bot.executeAsync(AddStickerToSet.tgsSticker(chatId.toInt(), userEntity.animatedPackName, sticker.emoji() ?: "🙂", it)
+                        .apply {
+                            if (sticker.maskPosition() != null) {
+                                maskPosition(sticker.maskPosition())
+                            }
+                        })
             }
             bot.executeAsync(
-                    SendMessage(chatId, messageSource.getMessage("sticker.added"))
+                    SendMessage(chatId, messageSource["sticker.added"])
                             .replyToMessageId(update.message().messageId())
-                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), packLink(userEntity.animatedPackName))
+                            .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
             )
         } else {
             optimizeIfNecessary(stickerFile) {
-                bot.wrapApiCall {
-                    bot.executeAsync(CreateNewStickerSet.tgsSticker(chatId.toInt(), userEntity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji() ?: "🙂", it)
-                            .containsMasks(sticker.maskPosition() != null)
-                            .maskPosition(sticker.maskPosition())
-                    )
-                }
+                bot.executeAsync(CreateNewStickerSet.tgsSticker(chatId.toInt(), userEntity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji() ?: "🙂", it)
+                        .apply {
+                            if (sticker.maskPosition() != null) {
+                                maskPosition(sticker.maskPosition())
+                            }
+                        }
+                )
             }
             dao.setCreatedStatus(chatId, animatedStickerCreated = true)
             bot.executeAsync(
-                    SendMessage(chatId, messageSource.getMessage("created.pack"))
+                    SendMessage(chatId, messageSource["created.pack"])
                             .replyToMessageId(update.message().messageId())
-                            .addInlineKeyboard(messageSource.getMessage("animated.sticker.pack.button.text"), packLink(userEntity.animatedPackName))
+                            .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
             )
         }
         dao.saveSticker(chatId, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji()), true)
@@ -78,7 +83,7 @@ class AnimatedStickerHandler(
             // step one - try naive way (handles most of cases actually)
             val success = kotlin.runCatching { block(originalFile) }.isSuccess
             if (success) return@withTempFile
-            logDebug("First step for animated    sticker failed! Trying second way")
+            logDebug("First step for animated sticker failed! Trying second way")
 
             // step two - optimize with lottie (python, bruh)
             val tempOriginalPath = Files.createTempFile(TEMP_FILE_PREFIX, TGS_SUFFIX)

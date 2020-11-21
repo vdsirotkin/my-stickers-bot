@@ -50,12 +50,12 @@ class NormalStickerHandler(
                 val chatId = update.message().chat().id()
                 val sticker = update.message().sticker()
                 if (stickerDao.stickerExists(entity, sticker, false)) {
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.already.added")).replyToMessageId(update.message().messageId()))
+                    bot.executeAsync(SendMessage(chatId, messageSource["sticker.already.added"]).replyToMessageId(update.message().messageId()))
                     return@on transitionTo(State.Finished)
                 }
                 logDebug(sticker.toString())
                 if (sticker.emoji() == null) {
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("emoji.required")))
+                    bot.executeAsync(SendMessage(chatId, messageSource["emoji.required"]))
                     transitionTo(State.WaitingForEmoji(StickerMeta(sticker.fileId(), sticker.fileUniqueId())))
                 } else {
                     transitionTo(State.AllDone(StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji())))
@@ -69,13 +69,13 @@ class NormalStickerHandler(
                 if (update.message().text() != null) {
                     val emojis = EmojiParser.extractEmojis(update.message().text())
                     if (emojis.isEmpty()) {
-                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
+                        bot.executeAsync(SendMessage(chatId, messageSource["send.emojis.message"]))
                         return@on dontTransition()
                     }
                     val emojiStr = emojis.joinToString()
                     transitionTo(State.AllDone(this@on.meta.copy(emoji = emojiStr)))
                 } else {
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
+                    bot.executeAsync(SendMessage(chatId, messageSource["send.emojis.message"]))
                     dontTransition()
                 }
             }
@@ -90,7 +90,7 @@ class NormalStickerHandler(
                     transitionTo(State.Finished)
                 } catch (e: PngNotCreatedException) {
                     logger.warn("Can't create png from this sticker")
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.cant.be.processed")).replyToMessageId(messageId))
+                    bot.executeAsync(SendMessage(chatId, messageSource["sticker.cant.be.processed"]).replyToMessageId(messageId))
                     transitionTo(State.Finished)
                 } catch (e: Exception) {
                     throw e

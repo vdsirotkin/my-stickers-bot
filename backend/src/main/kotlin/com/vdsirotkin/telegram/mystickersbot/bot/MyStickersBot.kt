@@ -3,6 +3,7 @@ package com.vdsirotkin.telegram.mystickersbot.bot
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.TelegramException
 import com.pengrad.telegrambot.UpdatesListener
+import com.pengrad.telegrambot.model.Chat
 import com.pengrad.telegrambot.model.Sticker
 import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.request.SendMessage
@@ -48,10 +49,10 @@ class MyStickersBot(
     }
 
     fun onUpdateReceived(update: Update) {
-//        if (isGroup(update)) {
-//            handleGroup(update)
-//            return
-//        }
+        if (isGroup(update)) {
+            handleGroup(update)
+            return
+        }
         val chatId = determineChatId(update)
         if (update.message()?.text() == "/cancel") {
             handleCancel(chatId)
@@ -114,10 +115,13 @@ class MyStickersBot(
         }
     }
 
-//    private fun isGroup(update: Update): Boolean {
-//        val chat = update.message?.chat ?: return false
-//        return (chat.isGroupChat && chat.isSuperGroupChat && chat.isChannelChat)
-//    }
+    private fun isGroup(update: Update): Boolean {
+        val type = update.message()?.chat()?.type() ?: return false
+        return when (type) {
+            Chat.Type.group, Chat.Type.supergroup, Chat.Type.channel -> true
+            else -> false
+        }
+    }
 
     private fun processEmojiQuery(chatId: Long): BaseHandler {
         return if (handlerStateMap.containsKey(chatId)) {
@@ -142,12 +146,12 @@ class MyStickersBot(
             GlobalScope.launch {
                 handler.cancel(this@MyStickersBot, chatId)
                 val messageSource = messageSourceProvider.getMessageSource(chatId)
-                executeAsync(SendMessage(chatId, messageSource.getMessage("cancel.success")))
+                executeAsync(SendMessage(chatId, messageSource["cancel.success"]))
             }
         } else {
             GlobalScope.launch {
                 val messageSource = messageSourceProvider.getMessageSource(chatId)
-                executeAsync(SendMessage(chatId, messageSource.getMessage("cancel.nothing")))
+                executeAsync(SendMessage(chatId, messageSource["cancel.nothing"]))
             }
         }
     }
@@ -177,14 +181,12 @@ class MyStickersBot(
             try {
                 val messageSource = messageSourceProvider.getMessageSource(chatId)
                 executeAsync(SendMessage(props.serviceAccountId, "Error occurred, check call id $callId"))
-                executeAsync(SendMessage(chatId, messageSource.getMessage("error")))
+                executeAsync(SendMessage(chatId, messageSource["error"]))
             } catch (e: Exception) {
                 logger.error("Unrecoverable error, message: ${e.message}", e)
             }
         }
     }
-
-    fun getBotUsername(): String = props.username
 
     companion object : Loggable
 }

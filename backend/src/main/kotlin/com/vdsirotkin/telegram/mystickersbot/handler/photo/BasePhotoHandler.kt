@@ -52,11 +52,11 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
         when (data.state) {
             NEW -> {
                 if (!canBeProcessed(update)) {
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("document.not.supported")))
+                    bot.executeAsync(SendMessage(chatId, messageSource["document.not.supported"]))
                     photoHandlerState = photoHandlerState.toFinished()
                     return
                 }
-                val message = bot.executeAsync(SendMessage(chatId, messageSource.getMessage("emoji.required")).addEmojiKeyboard())
+                val message = bot.executeAsync(SendMessage(chatId, messageSource["emoji.required"]).addEmojiKeyboard())
                 val fileId = getFileId(update)
                 val meta = PhotoMeta(fileId, update.message().messageId(), message.message().messageId())
                 photoHandlerState = photoHandlerState.toWaitingForEmoji(meta)
@@ -67,7 +67,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
                     update.message() != null && update.message().text() != null -> {
                         val emojis = EmojiParser.extractEmojis(update.message().text())
                         if (emojis.isEmpty()) {
-                            bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
+                            bot.executeAsync(SendMessage(chatId, messageSource["send.emojis.message"]))
                             return
                         }
                         val emojiStr = emojis.joinToString()
@@ -81,7 +81,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
                         photoHandlerState = photoHandlerState.toFinished()
                     }
                     else -> {
-                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("send.emojis.message")))
+                        bot.executeAsync(SendMessage(chatId, messageSource["send.emojis.message"]))
                     }
                 }
             }
@@ -96,14 +96,14 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
             messageSource: MessageSourceWrapper,
             emoji: String? = null,
     ) {
-        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("please.wait")))
+        bot.executeAsync(SendMessage(chatId, messageSource["please.wait"]))
         val file = fileHelper.downloadFile(bot, fileId)
         val resized = try {
             withTempFile(file) {
                 imageResizer.resizeImage(file)
             }
         } catch (e: PngNotCreatedException) {
-            bot.executeAsync(SendMessage(chatId, messageSource.getMessage("photo.cant.be.processed")))
+            bot.executeAsync(SendMessage(chatId, messageSource["photo.cant.be.processed"]))
             return
         }
         withTempFile(resized) {

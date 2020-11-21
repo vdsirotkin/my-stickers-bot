@@ -17,9 +17,9 @@ class StickerPackMessagesSender {
                                messageSource: MessageSourceWrapper,
                                messageId: Int,
                                entity: UserEntity) {
-        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("sticker.added"))
+        bot.executeAsync(SendMessage(chatId, messageSource["sticker.added"])
                 .replyToMessageId(messageId)
-                .addInlineKeyboard(messageSource.getMessage("sticker.pack.button.text"), packLink(entity.normalPackName))
+                .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.normalPackName))
         )
     }
 
@@ -27,9 +27,9 @@ class StickerPackMessagesSender {
                                    messageSource: MessageSourceWrapper,
                                    messageId: Int,
                                    entity: UserEntity) {
-        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("created.pack"))
+        bot.executeAsync(SendMessage(chatId, messageSource["created.pack"])
                 .replyToMessageId(messageId)
-                .addInlineKeyboard(messageSource.getMessage("sticker.pack.button.text"), packLink(entity.normalPackName)))
+                .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.normalPackName)))
     }
 
 }

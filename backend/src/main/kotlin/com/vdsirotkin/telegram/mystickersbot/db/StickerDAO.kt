@@ -77,4 +77,14 @@ class StickerDAO(
                 .awaitUnit()
     }
 
+    suspend fun deleteSticker(chatId: Long, fileId: String, isAnimated: Boolean) {
+        template.findById(chatId.toString(), UserEntity::class.java)
+                .doOnNext {
+                    val set = if(isAnimated) it.animatedPackSet else it.normalPackSet
+                    set.removeIf { it.fileId == fileId }
+                }
+                .flatMap { template.save(it) }
+                .awaitUnit()
+    }
+
 }

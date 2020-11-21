@@ -5,7 +5,8 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
-import com.pengrad.telegrambot.request.*
+import com.pengrad.telegrambot.request.BaseRequest
+import com.pengrad.telegrambot.request.SendMessage
 import com.pengrad.telegrambot.response.BaseResponse
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
 import io.github.resilience4j.kotlin.ratelimiter.executeSuspendFunction
@@ -107,15 +108,6 @@ suspend fun <T> TelegramBot.wrapApiCall(block: suspend TelegramBot.() -> T): T {
         }
     } else {
         block()
-    }
-}
-
-suspend fun <T : BaseRequest<T, R>, R : BaseResponse> TelegramBot.executeStickerPackAction(method: BaseRequest<T, R>) {
-    when (method) {
-        is CreateNewStickerSet -> wrapApiCall { execute(method) }
-        is AddStickerToSet -> wrapApiCall { execute(method) }
-        is DeleteStickerFromSet -> wrapApiCall { execute(method) }
-        else -> throw UnsupportedOperationException("${method.javaClass} is not supported by executeStickerPack")
     }
 }
 

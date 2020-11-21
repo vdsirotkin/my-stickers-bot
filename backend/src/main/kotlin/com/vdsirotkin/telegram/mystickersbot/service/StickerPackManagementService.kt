@@ -6,7 +6,7 @@ import com.pengrad.telegrambot.request.AddStickerToSet
 import com.pengrad.telegrambot.request.CreateNewStickerSet
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
-import com.vdsirotkin.telegram.mystickersbot.util.executeStickerPackAction
+import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import org.springframework.stereotype.Service
 import java.io.File
 
@@ -20,7 +20,7 @@ class StickerPackManagementService(
                                          sticker: File,
                                          entity: UserEntity,
                                          emoji: String? = null) {
-        bot.executeStickerPackAction(AddStickerToSet(chatId.toInt(), entity.normalPackName, sticker, emoji ?: "🙂"))
+        bot.executeAsync(AddStickerToSet(chatId.toInt(), entity.normalPackName, sticker, emoji ?: "🙂"))
     }
 
     suspend fun createNewPack(bot: TelegramBot,
@@ -29,7 +29,7 @@ class StickerPackManagementService(
                                       entity: UserEntity,
                                       emoji: String? = null,
                                       maskPosition: MaskPosition? = null) {
-        bot.executeStickerPackAction(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker, emoji ?: "🙂")
+        bot.executeAsync(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker, emoji ?: "🙂")
                 .containsMasks(maskPosition != null)
                 .maskPosition(maskPosition))
     }

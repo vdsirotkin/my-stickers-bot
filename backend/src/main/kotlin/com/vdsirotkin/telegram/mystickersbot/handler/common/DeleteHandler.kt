@@ -16,7 +16,6 @@ import com.vdsirotkin.telegram.mystickersbot.handler.common.DeleteHandler.State.
 import com.vdsirotkin.telegram.mystickersbot.handler.common.DeleteHandler.State.PROCESSING
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
-import com.vdsirotkin.telegram.mystickersbot.util.executeStickerPackAction
 import com.vdsirotkin.telegram.mystickersbot.util.packLink
 import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.MessageSource
@@ -40,7 +39,7 @@ class DeleteHandler(
         val chatId = update.message().chat().id()
         when (state.data) {
             NEW -> {
-                bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.start")).addKeyboard(userEntity, messageSource))
+                bot.executeAsync(SendMessage(chatId, messageSource["delete.start"]).addKeyboard(userEntity, messageSource))
                 state = state.copy(data = PROCESSING)
             }
             PROCESSING -> {
@@ -49,14 +48,15 @@ class DeleteHandler(
                     val animated = sticker.isAnimated
                     val packName = if (animated) userEntity.animatedPackName else userEntity.normalPackName
                     if (sticker.setName() == packName) {
-                        bot.executeStickerPackAction(DeleteStickerFromSet(sticker.fileId()))
-                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.success")).replyToMessageId(update.message().messageId()))
+                        bot.executeAsync(DeleteStickerFromSet(sticker.fileId()))
+                        stickerDao.deleteSticker(chatId, sticker.fileId(), animated)
+                        bot.executeAsync(SendMessage(chatId, messageSource["delete.success"]).replyToMessageId(update.message().messageId()))
                         state = state.copy(finished = true)
                     } else {
-                        bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.not.my.sticker")).addKeyboard(userEntity, messageSource))
+                        bot.executeAsync(SendMessage(chatId, messageSource["delete.not.my.sticker"]).addKeyboard(userEntity, messageSource))
                     }
                 } else {
-                    bot.executeAsync(SendMessage(chatId, messageSource.getMessage("delete.please.send.sticker")))
+                    bot.executeAsync(SendMessage(chatId, messageSource["delete.please.send.sticker"]))
                 }
             }
         }
@@ -79,8 +79,8 @@ class DeleteHandler(
     private fun SendMessage.addKeyboard(entity: UserEntity, messageSource: MessageSourceWrapper): SendMessage {
         return replyMarkup(
                 InlineKeyboardMarkup(arrayOf(
-                        InlineKeyboardButton(messageSource.getMessage("sticker.pack.button.text")).url(packLink(entity.normalPackName)),
-                        InlineKeyboardButton(messageSource.getMessage("animated.sticker.pack.button.text")).url(packLink(entity.animatedPackName))
+                        InlineKeyboardButton(messageSource["sticker.pack.button.text"]).url(packLink(entity.normalPackName)),
+                        InlineKeyboardButton(messageSource["animated.sticker.pack.button.text"]).url(packLink(entity.animatedPackName))
                 ))
         )
     }

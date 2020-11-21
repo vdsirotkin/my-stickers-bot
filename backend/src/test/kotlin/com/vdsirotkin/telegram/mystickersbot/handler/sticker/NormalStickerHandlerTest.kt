@@ -3,10 +3,7 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.pengrad.telegrambot.Callback
-import com.pengrad.telegrambot.model.Chat
-import com.pengrad.telegrambot.model.Message
-import com.pengrad.telegrambot.model.Sticker
-import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.model.*
 import com.pengrad.telegrambot.request.AddStickerToSet
 import com.pengrad.telegrambot.request.CreateNewStickerSet
 import com.pengrad.telegrambot.request.GetFile
@@ -57,15 +54,30 @@ class NormalStickerHandlerTest {
         val ms = mockkClass(MessageSource::class) {
             every { getMessage(any(), null, any()) } returns ""
         }
-        val fileHelper = FileHelper()
+        val fileHelper = mockk<FileHelper>().apply {
+            coEvery { downloadFile(any(), any(), any()) } returns Unit
+        }
         normalStickerHandler = NormalStickerHandler(pngSticker, spms, spmSender, fileHelper, dao, ms)
 
         every { bot.retry } returns Retry.of("", RetryConfig.custom<Any>().retryOnException { false }.build())
         every { bot.rateLimiter } returns RateLimiter.ofDefaults("")
-        every { bot.execute(any<SendMessage>(), any()) } answers { (secondArg() as Callback<SendMessage, SendResponse>).onResponse(null, ReflectionUtils.newInstance(SendResponse::class.java)) }
-        every { bot.execute(any<GetFile>(), any<Callback<GetFile, GetFileResponse>>()) } answers { (secondArg() as Callback<GetFile, GetFileResponse>).onResponse(null, ReflectionUtils.newInstance(GetFileResponse::class.java)) }
-        every { bot.execute(any<CreateNewStickerSet>(), any()) } answers { (secondArg() as Callback<CreateNewStickerSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java)) }
-        every { bot.execute(any<AddStickerToSet>(), any()) } answers { (secondArg() as Callback<AddStickerToSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java)) }
+        every {
+            bot.execute(any(), any<Callback<SendMessage, SendResponse>>())
+        } answers {
+            val clazz = firstArg<Any>()
+            when (clazz) {
+                is SendMessage -> (secondArg() as Callback<SendMessage, SendResponse>).onResponse(null, ReflectionUtils.newInstance(SendResponse::class.java))
+                is GetFile -> {
+                    (secondArg() as Callback<GetFile, GetFileResponse>).onResponse(null, mockk<GetFileResponse>().apply {
+                        every { file() } returns mockk<File>().apply {
+                            every { fileId() } returns "792632f6-230b-4b1b-8b5d-087ffd785482"
+                        }
+                    })
+                }
+                is CreateNewStickerSet -> (secondArg() as Callback<CreateNewStickerSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java))
+                is AddStickerToSet -> (secondArg() as Callback<AddStickerToSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java))
+            }
+        }
     }
 
     @BeforeEach
@@ -80,8 +92,7 @@ class NormalStickerHandlerTest {
         val update = buildStickerUpdate()
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
-        verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
-        verify(exactly = 2) { bot.execute(any<SendMessage>(), any()) }
+        verify(exactly = 3) { bot.execute(any<CreateNewStickerSet>(), any()) }
     }.unit()
 
     @Test
@@ -92,8 +103,7 @@ class NormalStickerHandlerTest {
         val update = buildStickerUpdate()
         normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
 
-        verify(exactly = 1) { bot.execute(any<AddStickerToSet>()) }
-        verify(exactly = 2) { bot.execute(any<SendMessage>(), any()) }
+        verify(exactly = 3) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     @Test
@@ -116,8 +126,7 @@ class NormalStickerHandlerTest {
         val update2 = buildTextUpdate()
         firstResult.handle(bot, update2).fillMdc(CHAT_ID).awaitStrict()
 
-        verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
-        verify(exactly = 3) { bot.execute(any<SendMessage>(), any()) }
+        verify(exactly = 4) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     @Test
@@ -131,8 +140,7 @@ class NormalStickerHandlerTest {
         val update3 = buildTextUpdate()
         normalStickerHandler.handle(bot, update3).fillMdc(CHAT_ID).awaitStrict()
 
-        verify(exactly = 1) { bot.execute(any<CreateNewStickerSet>()) }
-        verify(exactly = 4) { bot.execute(any<SendMessage>(), any()) }
+        verify(exactly = 5) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     private fun buildTextUpdate(text: String? = "😀"): Update {

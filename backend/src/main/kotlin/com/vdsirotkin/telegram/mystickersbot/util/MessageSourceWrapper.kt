@@ -8,6 +8,6 @@ class MessageSourceWrapper(
         private val locale: Locale
 ) {
 
-    fun getMessage(code: String): String = messageSource.getMessage(code, null, locale)
+    operator fun get(code: String): String = messageSource.getMessage(code, null, locale)
 
 }
