@@ -29,9 +29,13 @@ class StickerPackManagementService(
                                       entity: UserEntity,
                                       emoji: String? = null,
                                       maskPosition: MaskPosition? = null) {
-        bot.executeAsync(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker, emoji ?: "🙂")
-                .containsMasks(maskPosition != null)
-                .maskPosition(maskPosition))
+        bot.executeAsync(CreateNewStickerSet(chatId.toInt(), entity.normalPackName, "Your stickers - @${props.username}", sticker, emoji
+                ?: "🙂")
+                .apply {
+                    if (maskPosition != null) {
+                        maskPosition(maskPosition)
+                    }
+                })
     }
 
 }
