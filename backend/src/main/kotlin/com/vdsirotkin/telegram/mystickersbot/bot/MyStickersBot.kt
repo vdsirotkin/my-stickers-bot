@@ -42,7 +42,11 @@ class MyStickersBot(
     fun init() {
         this.setUpdatesListener {
             it.forEach {
-                onUpdateReceived(it)
+                try {
+                    onUpdateReceived(it)
+                } catch (e: Exception) {
+                    logger.error("Error while processing update: $it", e)
+                }
             }
             UpdatesListener.CONFIRMED_UPDATES_ALL
         }
