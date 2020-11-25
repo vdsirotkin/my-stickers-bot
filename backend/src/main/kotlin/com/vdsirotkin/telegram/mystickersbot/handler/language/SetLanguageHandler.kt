@@ -18,7 +18,6 @@ class SetLanguageHandler(
         private val messageSource: MessageSource,
         private val stickerDAO: StickerDAO
 ) : BaseHandler {
-
     override fun handle(bot: TelegramBot, update: Update): Mono<BaseHandler> = mdcMono {
         val chatId = update.callbackQuery().from().id().toLong()
         val selectedLanguage = update.callbackQuery().data().removePrefix(setLanguageCommandPrefix)
@@ -27,5 +26,8 @@ class SetLanguageHandler(
                 .text(messageSource.getMessage("success.chosen", null, Locale.forLanguageTag(selectedLanguage)))
         )
     }.thenReturn(this)
+
+    override val action: String
+        get() = "SET_LANGUAGE_CALLBACK"
 
 }

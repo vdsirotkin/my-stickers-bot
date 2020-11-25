@@ -8,6 +8,8 @@ import reactor.core.publisher.Mono
 @FunctionalInterface
 interface BaseHandler {
 
+    val action: String
+
     fun handle(bot: TelegramBot, update: Update): Mono<BaseHandler>
 
 }

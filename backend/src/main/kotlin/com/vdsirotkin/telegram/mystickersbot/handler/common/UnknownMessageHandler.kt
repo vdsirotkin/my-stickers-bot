@@ -3,9 +3,9 @@ package com.vdsirotkin.telegram.mystickersbot.handler.common
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.request.AnswerCallbackQuery
-import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
+import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
@@ -28,7 +28,7 @@ class UnknownMessageHandler(override val stickerDao: StickerDAO,
         when {
             update.message() != null -> {
                 logger.info("Received some spam: ${update.message().text()}")
-                bot.executeAsync(SendMessage(update.message().chat().id(), messageSource["unknown.text"]))
+                bot.executeAsync(SendMessageWithAction(update.message().chat().id(), messageSource["unknown.text"], action))
             }
             update.callbackQuery()!=null -> {
                 logger.info("Received dangling inline query")
@@ -38,6 +38,9 @@ class UnknownMessageHandler(override val stickerDao: StickerDAO,
             else -> {}
         }
     }.thenReturn(this)
+
+    override val action: String
+        get() = "UNKNOWN_MESSAGE"
 
     companion object : Loggable
 }

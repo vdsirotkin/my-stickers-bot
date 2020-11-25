@@ -31,5 +31,8 @@ class DocumentHandler(override val stickerPackMessagesSender: StickerPackMessage
 
     override fun getFileId(update: Update): String = update.message().document().fileId()
 
+    override val action: String
+        get() = "DOCUMENT"
+
 
 }

@@ -1,8 +1,8 @@
 package com.vdsirotkin.telegram.mystickersbot.service
 
 import com.pengrad.telegrambot.TelegramBot
-import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
+import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
 import com.vdsirotkin.telegram.mystickersbot.util.addInlineKeyboard
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
@@ -16,8 +16,8 @@ class StickerPackMessagesSender {
                                chatId: Long,
                                messageSource: MessageSourceWrapper,
                                messageId: Int,
-                               entity: UserEntity) {
-        bot.executeAsync(SendMessage(chatId, messageSource["sticker.added"])
+                               entity: UserEntity, action: String) {
+        bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.added"], action)
                 .replyToMessageId(messageId)
                 .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.normalPackName))
         )
@@ -26,8 +26,8 @@ class StickerPackMessagesSender {
     suspend fun sendSuccessCreated(bot: TelegramBot, chatId: Long,
                                    messageSource: MessageSourceWrapper,
                                    messageId: Int,
-                                   entity: UserEntity) {
-        bot.executeAsync(SendMessage(chatId, messageSource["created.pack"])
+                                   entity: UserEntity, action: String) {
+        bot.executeAsync(SendMessageWithAction(chatId, messageSource["created.pack"], action)
                 .replyToMessageId(messageId)
                 .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.normalPackName)))
     }

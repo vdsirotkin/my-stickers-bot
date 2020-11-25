@@ -4,9 +4,9 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup
-import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
+import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
@@ -52,11 +52,11 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
         when (data.state) {
             NEW -> {
                 if (!canBeProcessed(update)) {
-                    bot.executeAsync(SendMessage(chatId, messageSource["document.not.supported"]))
+                    bot.executeAsync(SendMessageWithAction(chatId, messageSource["document.not.supported"], action))
                     photoHandlerState = photoHandlerState.toFinished()
                     return
                 }
-                val message = bot.executeAsync(SendMessage(chatId, messageSource["emoji.required"]).addEmojiKeyboard())
+                val message = bot.executeAsync(SendMessageWithAction(chatId, messageSource["emoji.required"], action).addEmojiKeyboard())
                 val fileId = getFileId(update)
                 val meta = PhotoMeta(fileId, update.message().messageId(), message.message().messageId())
                 photoHandlerState = photoHandlerState.toWaitingForEmoji(meta)
@@ -67,7 +67,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
                     update.message() != null && update.message().text() != null -> {
                         val emojis = EmojiParser.extractEmojis(update.message().text())
                         if (emojis.isEmpty()) {
-                            bot.executeAsync(SendMessage(chatId, messageSource["send.emojis.message"]))
+                            bot.executeAsync(SendMessageWithAction(chatId, messageSource["send.emojis.message"], action))
                             return
                         }
                         val emojiStr = emojis.joinToString()
@@ -81,7 +81,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
                         photoHandlerState = photoHandlerState.toFinished()
                     }
                     else -> {
-                        bot.executeAsync(SendMessage(chatId, messageSource["send.emojis.message"]))
+                        bot.executeAsync(SendMessageWithAction(chatId, messageSource["send.emojis.message"], action))
                     }
                 }
             }
@@ -96,24 +96,24 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
             messageSource: MessageSourceWrapper,
             emoji: String? = null,
     ) {
-        bot.executeAsync(SendMessage(chatId, messageSource["please.wait"]))
+        bot.executeAsync(SendMessageWithAction(chatId, messageSource["please.wait"], action))
         val file = fileHelper.downloadFile(bot, fileId)
         val resized = try {
             withTempFile(file) {
                 imageResizer.resizeImage(file)
             }
         } catch (e: PngNotCreatedException) {
-            bot.executeAsync(SendMessage(chatId, messageSource["photo.cant.be.processed"]))
+            bot.executeAsync(SendMessageWithAction(chatId, messageSource["photo.cant.be.processed"], action))
             return
         }
         withTempFile(resized) {
             if (entity.normalPackCreated) {
                 stickerPackManagementService.addStickerToPack(bot, chatId, resized, entity, emoji)
-                stickerPackMessagesSender.sendSuccessAdd(bot, chatId, messageSource, messageId, entity)
+                stickerPackMessagesSender.sendSuccessAdd(bot, chatId, messageSource, messageId, entity, action)
             } else {
                 stickerPackManagementService.createNewPack(bot, chatId, resized, entity, emoji)
                 stickerDao.setCreatedStatus(chatId, normalStickerCreated = true)
-                stickerPackMessagesSender.sendSuccessCreated(bot, chatId, messageSource, messageId, entity)
+                stickerPackMessagesSender.sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
             }
         }
     }

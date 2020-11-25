@@ -2,10 +2,10 @@ package com.vdsirotkin.telegram.mystickersbot.batch
 
 import com.pengrad.telegrambot.TelegramException
 import com.pengrad.telegrambot.model.request.ParseMode
-import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
 import com.vdsirotkin.telegram.mystickersbot.db.entity.BatchJobStatus
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserStatus
+import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.util.MDC_USER_ID
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import kotlinx.coroutines.GlobalScope
@@ -32,7 +32,7 @@ class JobProcessor(
             }
             nextBatch.aMap { chatId: Long ->
                 val result = runCatching {
-                    bot.executeAsync(SendMessage(chatId, text).parseMode(ParseMode.HTML))
+                    bot.executeAsync(SendMessageWithAction(chatId, text, "BATCH_JOB").parseMode(ParseMode.HTML))
                 }
                 if (result.isSuccess) {
                     chatId to BatchJobStatus.SUCCESS

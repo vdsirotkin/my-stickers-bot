@@ -4,10 +4,10 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.request.AddStickerToSet
 import com.pengrad.telegrambot.request.CreateNewStickerSet
-import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
+import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
@@ -40,7 +40,7 @@ class AnimatedStickerHandler(
         logger.info(sticker.toString())
 
         if (dao.stickerExists(userEntity, sticker, true)) {
-            bot.executeAsync(SendMessage(chatId, messageSource["sticker.already.added"]).replyToMessageId(update.message().messageId()))
+            bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.already.added"], action).replyToMessageId(update.message().messageId()))
             return@mdcMono
         }
         val stickerFile = fileHelper.downloadFile(bot, sticker.fileId())
@@ -54,7 +54,7 @@ class AnimatedStickerHandler(
                         })
             }
             bot.executeAsync(
-                    SendMessage(chatId, messageSource["sticker.added"])
+                    SendMessageWithAction(chatId, messageSource["sticker.added"], action)
                             .replyToMessageId(update.message().messageId())
                             .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
             )
@@ -70,13 +70,16 @@ class AnimatedStickerHandler(
             }
             dao.setCreatedStatus(chatId, animatedStickerCreated = true)
             bot.executeAsync(
-                    SendMessage(chatId, messageSource["created.pack"])
+                    SendMessageWithAction(chatId, messageSource["created.pack"], action)
                             .replyToMessageId(update.message().messageId())
                             .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
             )
         }
         dao.saveSticker(chatId, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji()), true)
     }.thenReturn(this)
+
+    override val action: String
+        get() = "ANIMATED_STICKER"
 
     private suspend fun optimizeIfNecessary(originalFile: File, block: suspend (File) -> Unit) {
         withTempFile(originalFile) {

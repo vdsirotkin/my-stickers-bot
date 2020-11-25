@@ -2,9 +2,9 @@ package com.vdsirotkin.telegram.mystickersbot.handler.common
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
-import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
+import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
@@ -20,7 +20,6 @@ class StartHandler(
         private val messageSource: MessageSource,
         private val botConfigProps: BotConfigProps
 ) : BaseHandler {
-
     override fun handle(bot: TelegramBot, update: Update): Mono<BaseHandler> {
         val chatId = update.message().chat().id()
         val normalPackName = "def_stckr_${chatId}_by_${botConfigProps.username}"
@@ -32,9 +31,12 @@ class StartHandler(
             } else {
                 logger.warn("User already registered")
             }
-            bot.executeAsync(SendMessage(chatId, messageSource.getMessage("welcome", null, Locale.ENGLISH)))
+            bot.executeAsync(SendMessageWithAction(chatId, messageSource.getMessage("welcome", null, Locale.ENGLISH), action))
         }.thenReturn(this)
     }
+
+    override val action: String
+        get() = "NEW_USER_OR_HELP"
 
     companion object : Loggable
 
