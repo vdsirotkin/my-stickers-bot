@@ -9,6 +9,7 @@ import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
+import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
@@ -39,7 +40,7 @@ class DeleteHandler(
         val chatId = update.message().chat().id()
         when (state.data) {
             NEW -> {
-                bot.executeAsync(SendMessage(chatId, messageSource["delete.start"]).addKeyboard(userEntity, messageSource))
+                bot.executeAsync(SendMessageWithAction(chatId, messageSource["delete.start"], action).addKeyboard(userEntity, messageSource))
                 state = state.copy(data = PROCESSING)
             }
             PROCESSING -> {
@@ -50,13 +51,13 @@ class DeleteHandler(
                     if (sticker.setName() == packName) {
                         bot.executeAsync(DeleteStickerFromSet(sticker.fileId()))
                         stickerDao.deleteSticker(chatId, sticker.fileId(), animated)
-                        bot.executeAsync(SendMessage(chatId, messageSource["delete.success"]).replyToMessageId(update.message().messageId()))
+                        bot.executeAsync(SendMessageWithAction(chatId, messageSource["delete.success"], action).replyToMessageId(update.message().messageId()))
                         state = state.copy(finished = true)
                     } else {
-                        bot.executeAsync(SendMessage(chatId, messageSource["delete.not.my.sticker"]).addKeyboard(userEntity, messageSource))
+                        bot.executeAsync(SendMessageWithAction(chatId, messageSource["delete.not.my.sticker"], action).addKeyboard(userEntity, messageSource))
                     }
                 } else {
-                    bot.executeAsync(SendMessage(chatId, messageSource["delete.please.send.sticker"]))
+                    bot.executeAsync(SendMessageWithAction(chatId, messageSource["delete.please.send.sticker"], action))
                 }
             }
         }
@@ -84,5 +85,8 @@ class DeleteHandler(
                 ))
         )
     }
+
+    override val action: String
+        get() = "DELETE_STICKER"
 
 }

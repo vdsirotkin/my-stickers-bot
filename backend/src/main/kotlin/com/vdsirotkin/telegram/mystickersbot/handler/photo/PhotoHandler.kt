@@ -32,6 +32,9 @@ class PhotoHandler(override val stickerPackMessagesSender: StickerPackMessagesSe
         return photo.fileId()
     }
 
+    override val action: String
+        get() = "PHOTO"
+
     companion object : Loggable
 
 

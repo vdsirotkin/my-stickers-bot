@@ -4,3 +4,6 @@ spring:
       uri: ${MONGODB_URI}
 server:
   port: ${PORT}
+
+dashbot:
+  enabled: true

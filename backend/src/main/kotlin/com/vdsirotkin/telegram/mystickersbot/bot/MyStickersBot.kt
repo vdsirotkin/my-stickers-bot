@@ -1,18 +1,23 @@
 package com.vdsirotkin.telegram.mystickersbot.bot
 
+import com.pengrad.telegrambot.Callback
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.TelegramException
 import com.pengrad.telegrambot.UpdatesListener
 import com.pengrad.telegrambot.model.Chat
 import com.pengrad.telegrambot.model.Sticker
 import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.request.BaseRequest
 import com.pengrad.telegrambot.request.SendMessage
+import com.pengrad.telegrambot.response.BaseResponse
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
+import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.exception.HandlerException
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.HandlerFactory
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
 import com.vdsirotkin.telegram.mystickersbot.service.LocalizedMessageSourceProvider
+import com.vdsirotkin.telegram.mystickersbot.service.MetricsService
 import com.vdsirotkin.telegram.mystickersbot.util.*
 import io.github.resilience4j.ratelimiter.RateLimiter
 import io.github.resilience4j.retry.Retry
@@ -32,6 +37,7 @@ class MyStickersBot(
         private val props: BotConfigProps,
         private val handlerFactory: HandlerFactory,
         private val messageSourceProvider: LocalizedMessageSourceProvider,
+        private val metricsService: MetricsService,
         val retry: Retry,
         val rateLimiter: RateLimiter
 ) : TelegramBot(props.token) {
@@ -77,6 +83,8 @@ class MyStickersBot(
             update.message()?.document() != null -> handlerFactory.documentHandler
             else -> handlerFactory.unknownMessageHandler
         }
+
+        metricsService.trackIncoming(chatId, handler.action)
 
         handler.toMono()
                 .flatMap { it.handle(this, update) }
@@ -150,12 +158,12 @@ class MyStickersBot(
             GlobalScope.launch {
                 handler.cancel(this@MyStickersBot, chatId)
                 val messageSource = messageSourceProvider.getMessageSource(chatId)
-                executeAsync(SendMessage(chatId, messageSource["cancel.success"]))
+                executeAsync(SendMessageWithAction(chatId, messageSource["cancel.success"], "CANCEL"))
             }
         } else {
             GlobalScope.launch {
                 val messageSource = messageSourceProvider.getMessageSource(chatId)
-                executeAsync(SendMessage(chatId, messageSource["cancel.nothing"]))
+                executeAsync(SendMessageWithAction(chatId, messageSource["cancel.nothing"], "NOTHING_TO_CANCEL"))
             }
         }
     }
@@ -185,11 +193,18 @@ class MyStickersBot(
             try {
                 val messageSource = messageSourceProvider.getMessageSource(chatId)
                 executeAsync(SendMessage(props.serviceAccountId, "Error occurred, check call id $callId"))
-                executeAsync(SendMessage(chatId, messageSource["error"]))
+                executeAsync(SendMessageWithAction(chatId, messageSource["error"], "ERROR"))
             } catch (e: Exception) {
                 logger.error("Unrecoverable error, message: ${e.message}", e)
             }
         }
+    }
+
+    override fun <T : BaseRequest<T, R>?, R : BaseResponse?> execute(request: T, callback: Callback<T, R>?) {
+        if (request is SendMessageWithAction) {
+            metricsService.trackOutgoing(request.parameters["chat_id"]?.toString()?.toLong() ?: 0, request.action, request.parameters["text"]?.toString().orEmpty())
+        }
+        super.execute(request, callback)
     }
 
     companion object : Loggable

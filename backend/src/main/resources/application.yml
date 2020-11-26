@@ -8,6 +8,7 @@ spring:
       name: admin
       password: ${ADMIN_PASS:admin}
 
+
 bot:
   webhook: false
   token: ${BOT_TOKEN}
@@ -28,3 +29,6 @@ logging:
 
 vaadin:
   heartbeatInterval: 5
+dashbot:
+  enabled: true
+  api-key: ${DASHBOT_API_KEY}
