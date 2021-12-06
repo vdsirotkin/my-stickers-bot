@@ -134,7 +134,7 @@ fun CoroutineContext.resolveMdc() {
 fun determineChatId(update: Update): Long {
     return when {
         update.message() != null -> update.message().chat().id()
-        update.callbackQuery() != null -> update.callbackQuery().from().id().toLong()
+        update.callbackQuery() != null -> update.callbackQuery().from().id()
         else -> throw IllegalArgumentException("Unsupported message type")
     }
 }
