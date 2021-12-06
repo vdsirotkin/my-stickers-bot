@@ -46,7 +46,7 @@ class AnimatedStickerHandler(
         val stickerFile = fileHelper.downloadFile(bot, sticker.fileId())
         if (userEntity.animatedPackCreated) {
             optimizeIfNecessary(stickerFile) {
-                bot.executeAsync(AddStickerToSet.tgsSticker(chatId.toInt(), userEntity.animatedPackName, sticker.emoji() ?: "🙂", it)
+                bot.executeAsync(AddStickerToSet.tgsSticker(chatId, userEntity.animatedPackName, sticker.emoji() ?: "🙂", it)
                         .apply {
                             if (sticker.maskPosition() != null) {
                                 maskPosition(sticker.maskPosition())
@@ -60,7 +60,7 @@ class AnimatedStickerHandler(
             )
         } else {
             optimizeIfNecessary(stickerFile) {
-                bot.executeAsync(CreateNewStickerSet.tgsSticker(chatId.toInt(), userEntity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji() ?: "🙂", it)
+                bot.executeAsync(CreateNewStickerSet.tgsSticker(chatId, userEntity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji() ?: "🙂", it)
                         .apply {
                             if (sticker.maskPosition() != null) {
                                 maskPosition(sticker.maskPosition())
