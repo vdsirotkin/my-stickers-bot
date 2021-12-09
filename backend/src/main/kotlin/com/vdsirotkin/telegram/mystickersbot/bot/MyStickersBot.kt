@@ -78,6 +78,7 @@ class MyStickersBot(
             update.message()?.text() in arrayOf("/start", "/help")  -> handlerFactory.startHandler
             update.message()?.text() == "/language" -> handlerFactory.languageHandler
             update.message()?.text() == "/delete" -> handlerFactory.deleteHandler
+            update.message()?.text() == "/download" -> handlerFactory.downloadHandler
             update.message()?.sticker() != null -> processSticker(update.message().sticker())
             update.message()?.photo() != null -> handlerFactory.photoHandler
             update.message()?.document() != null -> handlerFactory.documentHandler
