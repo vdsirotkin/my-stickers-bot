@@ -3,6 +3,7 @@ package com.vdsirotkin.telegram.mystickersbot.batch
 import com.pengrad.telegrambot.TelegramException
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
+import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.BatchJobStatus
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserStatus
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
@@ -18,11 +19,11 @@ import ru.sokomishalov.commons.core.log.Loggable
 @Service
 class JobProcessor(
         private val jobManager: JobManager,
+        private val stickerDAO: StickerDAO,
         private val bot: MyStickersBot
 ) {
 
     fun startJob(jobId: String) = GlobalScope.launch {
-        val text = jobManager.getJobText(jobId)
         var finished = false
         while (!finished) {
             val nextBatch = jobManager.getNextBatch(jobId)
@@ -31,7 +32,11 @@ class JobProcessor(
                 jobManager.stopJob(jobId)
             }
             nextBatch.aMap { chatId: Long ->
+                val texts = jobManager.getJobText(jobId)
                 val result = runCatching {
+                    val userEntity = stickerDAO.getUserEntity(chatId)
+                    val text = texts.toMap()[userEntity.language]
+                    requireNotNull(text) { "Text not found for language '${userEntity.language}'" }
                     bot.executeAsync(SendMessageWithAction(chatId, text, "BATCH_JOB").parseMode(ParseMode.HTML))
                 }
                 if (result.isSuccess) {

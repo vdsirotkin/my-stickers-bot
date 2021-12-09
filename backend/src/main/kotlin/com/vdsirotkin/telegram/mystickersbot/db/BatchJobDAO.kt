@@ -100,6 +100,7 @@ class BatchJobDAO(
                     .include("_id")
                     .include("name")
                     .include("text")
+                    .include("textRu")
                     .include("currentOffset")
                     .include("finished")
         }

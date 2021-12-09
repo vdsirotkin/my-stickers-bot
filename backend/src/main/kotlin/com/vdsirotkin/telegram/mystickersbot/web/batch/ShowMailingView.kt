@@ -37,8 +37,12 @@ class ShowMailingView(
                     span().also { binder.forField(it.toHasValue()).bind(BatchViewInfo::id) }
                 }
                 br()
-                span("Text: ") {
+                span("Text (en): ") {
                     span().also { binder.forField(it.toHasValue()).bind(BatchViewInfo::text) }
+                }
+                br()
+                span("Text (ru): ") {
+                    span().also { binder.forField(it.toHasValue()).bind(BatchViewInfo::textRu) }
                 }
                 br()
                 span("Processed: ") {
@@ -87,8 +91,8 @@ class ShowMailingView(
     private suspend fun loadById(jobId: String) {
         val meta = jobManager.getJobMeta(jobId)
         val jobMeta = meta.jobMeta
-        val (id1, name, text, _, _) = jobMeta
-        bean = BatchViewInfo(id1, name, text, meta.jobStats.processedCount, meta.jobStats.overallCount, meta.jobStats.successCount, meta.jobStats.overallCount - meta.jobStats.successCount)
+        val (id, name, text, _, textRu, _) = jobMeta
+        bean = BatchViewInfo(id, name, text, textRu, meta.jobStats.processedCount, meta.jobStats.overallCount, meta.jobStats.successCount, meta.jobStats.overallCount - meta.jobStats.successCount)
         binder.readBean(bean)
 //        logger.info("updated status for ${bean!!.id}")
     }
@@ -96,6 +100,7 @@ class ShowMailingView(
     data class BatchViewInfo(var id: String,
                              var name: String,
                              var text: String,
+                             var textRu: String,
                              var processedCount: Long,
                              var overallCount: Long,
                              var successCount: Long,

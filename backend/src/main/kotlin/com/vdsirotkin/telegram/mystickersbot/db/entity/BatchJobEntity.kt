@@ -12,6 +12,7 @@ data class BatchJobEntity(
         val name: String,
         val text: String,
         val userStatus: MutableList<UserStatus> = mutableListOf(),
+        val textRu: String = "",
         val finished: Boolean = false
 ) {
 
