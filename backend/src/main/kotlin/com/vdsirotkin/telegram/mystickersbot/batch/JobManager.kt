@@ -15,13 +15,14 @@ class JobManager(
         private val stickerDAO: StickerDAO
 ) {
 
-    suspend fun createNewJob(name: String, text: String): BatchJobEntity {
+    suspend fun createNewJob(name: String, text: String, textRu: String): BatchJobEntity {
         val userMap = stickerDAO.getAllUserIds().sorted().map { UserStatus(it, BatchJobStatus.NOT_STARTED) }
-        return batchDao.save(BatchJobEntity(UUID.randomUUID().toString(), name, text, userMap.toMutableList()))
+        return batchDao.save(BatchJobEntity(UUID.randomUUID().toString(), name, text, userMap.toMutableList(), textRu))
     }
 
-    suspend fun getJobText(jobId: String): String {
-        return batchDao.getJobMeta(jobId).text
+    suspend fun getJobText(jobId: String): JobTexts {
+        val jobMeta = batchDao.getJobMeta(jobId)
+        return JobTexts(jobMeta.text, jobMeta.textRu)
     }
 
     suspend fun getJobMeta(jobId: String): BatchJobDTO {
@@ -49,6 +50,16 @@ class JobManager(
 
     suspend fun listJobs(): List<Pair<String, String>> {
         return batchDao.findAllJobs()
+    }
+
+    data class JobTexts(
+        val textEn: String,
+        val textRu: String
+    ) {
+        fun toMap() = mapOf(
+            "en" to textEn,
+            "ru" to textRu
+        )
     }
 
 }
