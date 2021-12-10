@@ -3,6 +3,7 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.request.GetFile
+import com.pengrad.telegrambot.request.SendDocument
 import com.pengrad.telegrambot.request.SendPhoto
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
@@ -69,6 +70,7 @@ class DownloadStickerHandler(
                     return@on dontTransition()
                 }
                 val pngFile = preparePngFile(bot, StickerMeta(update.message().sticker().fileId(), update.message().sticker().fileUniqueId()))
+                bot.executeAsync(SendDocument(update.message().chat().id(), pngFile).replyToMessageId(update.message().messageId()))
                 bot.executeAsync(SendPhoto(update.message().chat().id(), pngFile).replyToMessageId(update.message().messageId()))
                 transitionTo(State.Finished)
             }
