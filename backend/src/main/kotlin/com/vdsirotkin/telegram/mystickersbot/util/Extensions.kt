@@ -22,6 +22,7 @@ import org.slf4j.MDC
 import reactor.core.publisher.Mono
 import reactor.util.context.Context
 import ru.sokomishalov.commons.core.log.loggerFor
+import ru.sokomishalov.commons.core.serialization.OBJECT_MAPPER
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
@@ -31,6 +32,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.resume
 
 val DELETE_TEMP = System.getProperty("delete.temp", "true")!!.toBoolean()
+val LOG_RESPONSES = System.getProperty("log.responses", "false")!!.toBoolean()
 
 fun SendMessage.addInlineKeyboard(title: String, url: String): SendMessage {
     replyMarkup(InlineKeyboardMarkup(arrayOf(InlineKeyboardButton(title).url(url))))
@@ -88,6 +90,9 @@ suspend fun <T : BaseRequest<T, R>, R : BaseResponse> TelegramBot.executeAsync(m
         suspendCancellableCoroutine { cont ->
             execute(method, object : Callback<T, R> {
                 override fun onResponse(request: T?, response: R) {
+                    if (LOG_RESPONSES) {
+                        loggerFor("responseLogger").info("Request: ${OBJECT_MAPPER.writeValueAsString(request)}\nResponse: ${OBJECT_MAPPER.writeValueAsString(response)}")
+                    }
                     cont.resume(response)
                 }
 
