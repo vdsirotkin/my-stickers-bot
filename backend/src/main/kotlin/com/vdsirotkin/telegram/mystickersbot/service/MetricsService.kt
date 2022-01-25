@@ -4,6 +4,7 @@ import com.vdsirotkin.dashbot.client.TrackClient
 import com.vdsirotkin.dashbot.dto.TrackRequest
 import com.vdsirotkin.dashbot.dto.track.Intent
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.springframework.beans.factory.annotation.Value
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.bodyToMono
 import ru.sokomishalov.commons.core.log.Loggable
 import ru.sokomishalov.commons.core.reactor.await
+import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingDeque
 import javax.annotation.PostConstruct
 
@@ -20,6 +22,7 @@ class MetricsService(
         private val trackClient: TrackClient
 ) {
 
+    private val executor = Executors.newFixedThreadPool(2)
     private val incomingQueue: LinkedBlockingDeque<TrackRequest> = LinkedBlockingDeque()
     private val outgoingQueue: LinkedBlockingDeque<TrackRequest> = LinkedBlockingDeque()
 
@@ -34,7 +37,7 @@ class MetricsService(
     @PostConstruct
     fun init()  {
         if (!enabled) return
-        GlobalScope.launch {
+        GlobalScope.launch(context = executor.asCoroutineDispatcher()) {
             while (this.isActive) {
                 val request = incomingQueue.take()
                 try {
@@ -45,7 +48,7 @@ class MetricsService(
                 }
             }
         }
-        GlobalScope.launch {
+        GlobalScope.launch(context = executor.asCoroutineDispatcher()) {
             while (this.isActive) {
                 val request = outgoingQueue.take()
                 try {
