@@ -91,7 +91,7 @@ suspend fun <T : BaseRequest<T, R>, R : BaseResponse> TelegramBot.executeAsync(m
             execute(method, object : Callback<T, R> {
                 override fun onResponse(request: T?, response: R) {
                     if (LOG_RESPONSES) {
-                        loggerFor("responseLogger").info(OBJECT_MAPPER.writeValueAsString(response))
+                        loggerFor("responseLogger").info("Request: ${OBJECT_MAPPER.writeValueAsString(request)}\nResponse: ${OBJECT_MAPPER.writeValueAsString(response)}")
                     }
                     cont.resume(response)
                 }
