@@ -70,8 +70,10 @@ class DownloadStickerHandler(
                     return@on dontTransition()
                 }
                 val pngFile = preparePngFile(bot, StickerMeta(update.message().sticker().fileId(), update.message().sticker().fileUniqueId()))
-                bot.executeAsync(SendDocument(update.message().chat().id(), pngFile).replyToMessageId(update.message().messageId()))
-                bot.executeAsync(SendPhoto(update.message().chat().id(), pngFile).replyToMessageId(update.message().messageId()))
+                withTempFile(pngFile) { file ->
+                    bot.executeAsync(SendDocument(update.message().chat().id(), file).replyToMessageId(update.message().messageId()))
+                    bot.executeAsync(SendPhoto(update.message().chat().id(), file).replyToMessageId(update.message().messageId()))
+                }
                 transitionTo(State.Finished)
             }
         }
