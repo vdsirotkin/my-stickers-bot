@@ -16,6 +16,7 @@ import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.common.DeleteHandler.State.NEW
 import com.vdsirotkin.telegram.mystickersbot.handler.common.DeleteHandler.State.PROCESSING
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
+import com.vdsirotkin.telegram.mystickersbot.util.determineChatId
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import com.vdsirotkin.telegram.mystickersbot.util.packLink
 import org.springframework.beans.factory.config.BeanDefinition
@@ -37,7 +38,7 @@ class DeleteHandler(
             messageSource: MessageSourceWrapper,
             userEntity: UserEntity
     ): Mono<BaseHandler> = statefulMdcMono {
-        val chatId = update.message().chat().id()
+        val chatId = determineChatId(update)
         when (state.data) {
             NEW -> {
                 bot.executeAsync(SendMessageWithAction(chatId, messageSource["delete.start"], action).addKeyboard(userEntity, messageSource))
