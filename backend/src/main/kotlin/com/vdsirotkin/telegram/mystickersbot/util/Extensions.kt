@@ -140,6 +140,6 @@ fun determineChatId(update: Update): Long {
     return when {
         update.message() != null -> update.message().chat().id()
         update.callbackQuery() != null -> update.callbackQuery().from().id()
-        else -> throw IllegalArgumentException("Unsupported message type")
+        else -> throw IllegalArgumentException("Unsupported message type. Update: ${OBJECT_MAPPER.writeValueAsString(update)}")
     }
 }

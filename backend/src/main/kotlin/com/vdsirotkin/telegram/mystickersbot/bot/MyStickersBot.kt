@@ -113,8 +113,6 @@ class MyStickersBot(
                         logException(t)
                     }
                     sendErrorMessagesAsync(chatId, MDC.get(MDC_CALL_ID))
-
-
                     MDC.clear()
                 }.subscriberContext {
                     it.put(MDC_CALL_ID, UUID.randomUUID().toString())
