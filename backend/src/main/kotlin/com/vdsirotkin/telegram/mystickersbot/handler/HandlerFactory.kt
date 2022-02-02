@@ -10,6 +10,7 @@ import com.vdsirotkin.telegram.mystickersbot.handler.photo.PhotoHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.sticker.AnimatedStickerHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.sticker.DownloadStickerHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.sticker.NormalStickerHandler
+import com.vdsirotkin.telegram.mystickersbot.handler.sticker.VideoStickerHandler
 import org.springframework.beans.factory.annotation.Lookup
 import org.springframework.context.ApplicationContext
 import org.springframework.stereotype.Service
@@ -49,6 +50,9 @@ abstract class HandlerFactory(
 
     @get:Lookup
     abstract val downloadHandler: DownloadStickerHandler
+
+    @get:Lookup
+    abstract val videoStickerHandler: VideoStickerHandler
 
     fun newHandler(kClass: KClass<out BaseHandler>): BaseHandler = applicationContext.getBean(kClass.java)
 

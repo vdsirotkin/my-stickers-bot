@@ -32,9 +32,15 @@ class StickerDAO(
 
     suspend fun userRegistered(userId: Long): Boolean = template.exists(Query.query(Criteria.where("_id").`is`(userId.toString())), UserEntity::class.java).awaitStrict()
 
-    suspend fun saveUserPacks(userId: Long, normalStickerName: String, animatedStickerName: String) {
-        return template.save(UserEntity(userId.toString(), normalStickerName, animatedStickerName))
+    suspend fun saveUserPacks(userId: Long, normalStickerName: String, animatedStickerName: String, vidPackName: String) {
+        return template.save(UserEntity(userId.toString(), normalStickerName, animatedStickerName, vidPackName))
                 .awaitUnit()
+    }
+
+    suspend fun saveVideoPackName(userId: String, vidPackName: String): UserEntity {
+        return template.findById(userId, UserEntity::class.java).awaitStrict()
+            .copy(videoPackName = vidPackName)
+            .let { template.save(it).awaitStrict() }
     }
 
     suspend fun getUserEntity(userId: Long): UserEntity {
@@ -48,11 +54,12 @@ class StickerDAO(
                 .await()
     }
 
-    suspend fun setCreatedStatus(chatId: Long, normalStickerCreated: Boolean? = null, animatedStickerCreated: Boolean? = null) {
+    suspend fun setCreatedStatus(chatId: Long, normalStickerCreated: Boolean? = null, animatedStickerCreated: Boolean? = null, videoPackCreated: Boolean? = null) {
         return template.findById<UserEntity>(chatId.toString())
                 .map { entity ->
                     normalStickerCreated?.let { entity.normalPackCreated = it }
                     animatedStickerCreated?.let { entity.animatedPackCreated = it }
+                    videoPackCreated?.let { entity.videoPackCreated = it }
                     entity
                 }
                 .flatMap { template.save(it) }
@@ -67,6 +74,16 @@ class StickerDAO(
         return template.findById(chatId.toString(), UserEntity::class.java)
                 .doOnNext {
                     val set = if(isAnimated) it.animatedPackSet else it.normalPackSet
+                    set.add(UserEntity.StickerInfo(sticker.fileUniqueId, sticker.fileId))
+                }
+                .flatMap { template.save(it) }
+                .awaitUnit()
+    }
+
+    suspend fun saveVideoSticker(chatId: Long, sticker: StickerMeta) {
+        return template.findById(chatId.toString(), UserEntity::class.java)
+                .doOnNext {
+                    val set = it.videoPackSet
                     set.add(UserEntity.StickerInfo(sticker.fileUniqueId, sticker.fileId))
                 }
                 .flatMap { template.save(it) }

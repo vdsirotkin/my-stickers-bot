@@ -180,6 +180,6 @@ class NormalStickerHandlerTest {
         coEvery { dao.getUserEntity(CHAT_ID) } returns entity
     }
 
-    private fun buildDefaultEntity(normalPackCreated: Boolean = false): UserEntity = UserEntity(CHAT_ID.toString(), "test", "test", normalPackCreated, false)
+    private fun buildDefaultEntity(normalPackCreated: Boolean = false): UserEntity = UserEntity(CHAT_ID.toString(), "test", "test", "test", normalPackCreated, false)
 
 }

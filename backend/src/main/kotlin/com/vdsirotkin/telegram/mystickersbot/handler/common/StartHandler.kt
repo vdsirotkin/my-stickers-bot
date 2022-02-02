@@ -24,9 +24,10 @@ class StartHandler(
         val chatId = update.message().chat().id()
         val normalPackName = "def_stckr_${chatId}_by_${botConfigProps.username}"
         val animatedPackName = "anim_stckr_${chatId}_by_${botConfigProps.username}"
+        val vidPackName = "vid_stckr_${chatId}_by_${botConfigProps.username}"
         return mdcMono {
             if (!dao.userRegistered(chatId)) {
-                dao.saveUserPacks(chatId, normalPackName, animatedPackName)
+                dao.saveUserPacks(chatId, normalPackName, animatedPackName, vidPackName)
                 logger.info("New user joined")
             } else {
                 logger.warn("User already registered")

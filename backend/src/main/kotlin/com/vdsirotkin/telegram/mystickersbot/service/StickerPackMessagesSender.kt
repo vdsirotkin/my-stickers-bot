@@ -32,4 +32,28 @@ class StickerPackMessagesSender {
                 .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.normalPackName)))
     }
 
+    fun video() = Video()
+
+    inner class Video {
+        suspend fun sendSuccessAdd(bot: TelegramBot,
+                                   chatId: Long,
+                                   messageSource: MessageSourceWrapper,
+                                   messageId: Int,
+                                   entity: UserEntity, action: String) {
+            bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.added"], action)
+                .replyToMessageId(messageId)
+                .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.videoPackName))
+            )
+        }
+
+        suspend fun sendSuccessCreated(bot: TelegramBot, chatId: Long,
+                                       messageSource: MessageSourceWrapper,
+                                       messageId: Int,
+                                       entity: UserEntity, action: String) {
+            bot.executeAsync(SendMessageWithAction(chatId, messageSource["created.pack"], action)
+                .replyToMessageId(messageId)
+                .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.videoPackName)))
+        }
+    }
+
 }

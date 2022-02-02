@@ -182,6 +182,8 @@ class MyStickersBot(
     private fun processSticker(sticker: Sticker): BaseHandler {
         return if (sticker.isAnimated) {
             handlerFactory.animatedStickerHandler
+        } else if (sticker.isVideo) {
+            handlerFactory.videoStickerHandler
         } else {
             handlerFactory.normalStickerHandler
         }

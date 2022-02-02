@@ -12,10 +12,13 @@ data class UserEntity(
         val userId: String,
         val normalPackName: String,
         val animatedPackName: String,
+        val videoPackName: String = "",
         var normalPackCreated: Boolean = false,
         var animatedPackCreated: Boolean = false,
+        var videoPackCreated: Boolean = false,
         val normalPackSet: MutableSet<StickerInfo> = mutableSetOf(),
         val animatedPackSet: MutableSet<StickerInfo> = mutableSetOf(),
+        val videoPackSet: MutableSet<StickerInfo> = mutableSetOf(),
         val language: String = "en"
 ) {
         data class StickerInfo(

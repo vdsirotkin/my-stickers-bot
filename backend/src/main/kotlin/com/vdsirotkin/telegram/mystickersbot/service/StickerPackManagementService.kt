@@ -20,7 +20,7 @@ class StickerPackManagementService(
                                          sticker: File,
                                          entity: UserEntity,
                                          emoji: String? = null) {
-        bot.executeAsync(AddStickerToSet(chatId, entity.normalPackName, sticker, emoji ?: "🙂"))
+        bot.executeAsync(AddStickerToSet.pngSticker(chatId, entity.normalPackName, emoji ?: "🙂", sticker))
     }
 
     suspend fun createNewPack(bot: TelegramBot,
@@ -29,13 +29,38 @@ class StickerPackManagementService(
                                       entity: UserEntity,
                                       emoji: String? = null,
                                       maskPosition: MaskPosition? = null) {
-        bot.executeAsync(CreateNewStickerSet(chatId, entity.normalPackName, "Your stickers - @${props.username}", sticker, emoji
-                ?: "🙂")
+        bot.executeAsync(CreateNewStickerSet.pngSticker(chatId, entity.normalPackName, "Your stickers - @${props.username}", emoji ?: "🙂", sticker)
                 .apply {
                     if (maskPosition != null) {
                         maskPosition(maskPosition)
                     }
                 })
+    }
+
+    fun video() = Video()
+
+    inner class Video {
+        suspend fun addStickerToPack(bot: TelegramBot,
+                                     chatId: Long,
+                                     sticker: File,
+                                     entity: UserEntity,
+                                     emoji: String? = null) {
+            bot.executeAsync(AddStickerToSet.webmSticker(chatId, entity.videoPackName, emoji ?: "🙂", sticker))
+        }
+
+        suspend fun createNewPack(bot: TelegramBot,
+                                  chatId: Long,
+                                  sticker: File,
+                                  entity: UserEntity,
+                                  emoji: String? = null,
+                                  maskPosition: MaskPosition? = null) {
+            bot.executeAsync(CreateNewStickerSet.webmSticker(chatId, entity.videoPackName, "Your stickers - @${props.username}", emoji ?: "🙂", sticker)
+                .apply {
+                    if (maskPosition != null) {
+                        maskPosition(maskPosition)
+                    }
+                })
+        }
     }
 
 }
