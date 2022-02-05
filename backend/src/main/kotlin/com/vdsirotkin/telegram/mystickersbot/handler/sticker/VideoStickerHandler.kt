@@ -5,6 +5,7 @@ import com.pengrad.telegrambot.model.Update
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
+import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
@@ -12,10 +13,13 @@ import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
+import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
 import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
+
+// ffmpeg -i 1475461161146.gif.mp4 -c:v libvpx-vp9 -c:a libopus -vf scale=512:384 -to 00:00:03 1475461161146.gif.webm
 
 @Service
 class VideoStickerHandler(
@@ -32,6 +36,10 @@ class VideoStickerHandler(
         val chatId = update.message().chat().id()
 
         val webmFile = fileHelper.downloadFile(bot, fileId)
+        if (stickerDao.videoStickerExists(entity, update.message().sticker())) {
+            bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.already.added"], action).replyToMessageId(update.message().messageId()))
+            return@mdcMono
+        }
         if (entity.videoPackCreated) {
             stickerPackManagementService.video().addStickerToPack(bot, chatId, webmFile, entity, update.message().sticker().emoji())
             stickerPackMessagesSender.video().sendSuccessAdd(bot, chatId, messageSource, update.message().messageId(), entity, action)

@@ -146,7 +146,6 @@ class NormalStickerHandler(
         object New : State()
         class WaitingForEmoji(val meta: StickerMeta) : State()
         class AllDone(val meta: StickerMeta) : State()
-        object PreFinished : State()
         object Finished : State()
     }
 

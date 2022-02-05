@@ -30,6 +30,13 @@ class StickerDAO(
         return stickerPackContains || thisBotSticker
     }
 
+    suspend fun videoStickerExists(entity: UserEntity,
+                              sticker: Sticker): Boolean {
+        val stickerPackContains = entity.videoPackSet.firstOrNull { it.fileId == sticker.fileUniqueId() }?.let { true } ?: false
+        val thisBotSticker = sticker.setName() == entity.videoPackName
+        return stickerPackContains || thisBotSticker
+    }
+
     suspend fun userRegistered(userId: Long): Boolean = template.exists(Query.query(Criteria.where("_id").`is`(userId.toString())), UserEntity::class.java).awaitStrict()
 
     suspend fun saveUserPacks(userId: Long, normalStickerName: String, animatedStickerName: String, vidPackName: String) {

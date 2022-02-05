@@ -81,6 +81,7 @@ class MyStickersBot(
             update.message()?.text() == "/download" -> handlerFactory.downloadHandler
             update.message()?.sticker() != null -> processSticker(update.message().sticker())
             update.message()?.photo() != null -> handlerFactory.photoHandler
+            update.message()?.animation() != null -> handlerFactory.animationHandler
             update.message()?.document() != null -> handlerFactory.documentHandler
             else -> handlerFactory.unknownMessageHandler
         }
