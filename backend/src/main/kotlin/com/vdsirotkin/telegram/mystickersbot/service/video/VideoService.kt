@@ -47,7 +47,7 @@ class VideoService {
         return withTempFile(mp4File) {
             val webmFile = Files.createTempFile(TEMP_FILE_PREFIX, ".webm").toFile()
             webmFile.delete()
-            execWithLog("ffmpeg -i ${it.absolutePath} -c:v libvpx-vp9 -c:a libopus -vf scale=${newWidth}:${newHeight} -to 00:00:02.8 ${webmFile.absolutePath}")
+            execWithLog("ffmpeg -i ${it.absolutePath} -c:v libvpx-vp9 -c:a libopus -vf scale=${newWidth}:${newHeight} -to 00:00:02.8 -an ${webmFile.absolutePath}")
             webmFile
         }
     }
