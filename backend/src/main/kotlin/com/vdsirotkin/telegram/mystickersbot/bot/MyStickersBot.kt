@@ -132,7 +132,7 @@ class MyStickersBot(
     private fun isGroup(update: Update): Boolean {
         val type = update.message()?.chat()?.type() ?: return false
         return when (type) {
-            Chat.Type.group, Chat.Type.supergroup -> true
+            Chat.Type.group, Chat.Type.supergroup, Chat.Type.channel -> true
             else -> false
         }
     }
