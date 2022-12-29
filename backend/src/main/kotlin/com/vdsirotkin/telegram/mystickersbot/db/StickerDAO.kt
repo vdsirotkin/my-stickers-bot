@@ -3,7 +3,11 @@ package com.vdsirotkin.telegram.mystickersbot.db
 import com.pengrad.telegrambot.model.Sticker
 import com.vdsirotkin.telegram.mystickersbot.db.entity.USER_ENTITY_COLLECTION_NAME
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
+import com.vdsirotkin.telegram.mystickersbot.db.entity.getPackName
+import com.vdsirotkin.telegram.mystickersbot.db.entity.getPackSet
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
+import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
+import com.vdsirotkin.telegram.mystickersbot.dto.packType
 import kotlinx.coroutines.reactive.awaitFirstOrElse
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.aggregation.Aggregation
@@ -21,19 +25,12 @@ class StickerDAO(
 ) {
 
     suspend fun stickerExists(entity: UserEntity,
-                              sticker: Sticker,
-                              isAnimated: Boolean): Boolean {
-        val stickerPackContains = entity.let {
-            if (isAnimated) it.animatedPackSet else it.normalPackSet
-        }.firstOrNull { it.fileId == sticker.fileUniqueId() }?.let { true } ?: false
-        val thisBotSticker = sticker.setName() == if (isAnimated) entity.animatedPackName else entity.normalPackName
-        return stickerPackContains || thisBotSticker
-    }
-
-    suspend fun videoStickerExists(entity: UserEntity,
                               sticker: Sticker): Boolean {
-        val stickerPackContains = entity.videoPackSet.firstOrNull { it.fileId == sticker.fileUniqueId() }?.let { true } ?: false
-        val thisBotSticker = sticker.setName() == entity.videoPackName
+        val packType = sticker.packType()
+        val stickerPackContains = entity.let {
+            it.getPackSet(packType)
+        }.firstOrNull { it.fileId == sticker.fileUniqueId() }?.let { true } ?: false
+        val thisBotSticker = sticker.setName() == entity.getPackName(packType)
         return stickerPackContains || thisBotSticker
     }
 
@@ -77,20 +74,10 @@ class StickerDAO(
         return template.count(Query(), UserEntity::class.java).await()?.toInt() ?: 0
     }
 
-    suspend fun saveSticker(chatId: Long, sticker: StickerMeta, isAnimated: Boolean) {
+    suspend fun saveSticker(chatId: Long, sticker: StickerMeta) {
         return template.findById(chatId.toString(), UserEntity::class.java)
                 .doOnNext {
-                    val set = if(isAnimated) it.animatedPackSet else it.normalPackSet
-                    set.add(UserEntity.StickerInfo(sticker.fileUniqueId, sticker.fileId))
-                }
-                .flatMap { template.save(it) }
-                .awaitUnit()
-    }
-
-    suspend fun saveVideoSticker(chatId: Long, sticker: StickerMeta) {
-        return template.findById(chatId.toString(), UserEntity::class.java)
-                .doOnNext {
-                    val set = it.videoPackSet
+                    val set = it.getPackSet(sticker.type)
                     set.add(UserEntity.StickerInfo(sticker.fileUniqueId, sticker.fileId))
                 }
                 .flatMap { template.save(it) }
@@ -104,10 +91,10 @@ class StickerDAO(
                 .awaitUnit()
     }
 
-    suspend fun deleteSticker(chatId: Long, fileId: String, isAnimated: Boolean) {
+    suspend fun deleteSticker(chatId: Long, fileId: String, packType: StickerPackType) {
         template.findById(chatId.toString(), UserEntity::class.java)
                 .doOnNext {
-                    val set = if(isAnimated) it.animatedPackSet else it.normalPackSet
+                    val set = it.getPackSet(packType)
                     set.removeIf { it.fileId == fileId }
                 }
                 .flatMap { template.save(it) }

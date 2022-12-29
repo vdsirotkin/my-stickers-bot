@@ -7,6 +7,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
+import com.vdsirotkin.telegram.mystickersbot.dto.packType
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
@@ -32,27 +33,28 @@ class VideoStickerHandler(
 ): LocalizedHandler {
 
     override fun handleInternal(bot: TelegramBot, update: Update, messageSource: MessageSourceWrapper, entity: UserEntity): Mono<BaseHandler> = mdcMono {
-        val fileId = update.message().sticker().fileId()
+        val sticker = update.message().sticker()
+        val fileId = sticker.fileId()
         val chatId = update.message().chat().id()
 
         val webmFile = fileHelper.downloadFile(bot, fileId)
-        if (stickerDao.videoStickerExists(entity, update.message().sticker())) {
+        if (stickerDao.stickerExists(entity, sticker)) {
             bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.already.added"], action).replyToMessageId(update.message().messageId()))
             return@mdcMono
         }
         if (entity.videoPackCreated) {
-            stickerPackManagementService.video().addStickerToPack(bot, chatId, webmFile, entity, update.message().sticker().emoji())
+            stickerPackManagementService.video().addStickerToPack(bot, chatId, webmFile, entity, sticker.emoji())
             stickerPackMessagesSender.video().sendSuccessAdd(bot, chatId, messageSource, update.message().messageId(), entity, action)
         } else {
-            val resultEntity = updateVideoPackNameIfNesessary(entity)
-            stickerPackManagementService.video().createNewPack(bot, chatId, webmFile, resultEntity, update.message().sticker().emoji())
+            val resultEntity = updateVideoPackNameIfNecessary(entity)
+            stickerPackManagementService.video().createNewPack(bot, chatId, webmFile, resultEntity, sticker.emoji())
             stickerPackMessagesSender.video().sendSuccessCreated(bot, chatId, messageSource, update.message().messageId(), resultEntity, action)
             stickerDao.setCreatedStatus(chatId, videoPackCreated = true)
         }
-        stickerDao.saveVideoSticker(chatId, StickerMeta(fileId, update.message().sticker().fileUniqueId(), update.message().sticker().emoji()))
+        stickerDao.saveSticker(chatId, StickerMeta(fileId, sticker.fileUniqueId(), sticker.emoji(), sticker.packType()))
     }.thenReturn(this)
 
-    private suspend fun updateVideoPackNameIfNesessary(entity: UserEntity): UserEntity {
+    private suspend fun updateVideoPackNameIfNecessary(entity: UserEntity): UserEntity {
         if (entity.videoPackName.isNotEmpty()) return entity
         val vidPackName = "vid_stckr_${entity.userId}_by_${botConfigProps.username}"
         return stickerDao.saveVideoPackName(entity.userId, vidPackName)

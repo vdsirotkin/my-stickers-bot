@@ -34,12 +34,12 @@ import kotlin.reflect.KClass
 
 @Service
 class MyStickersBot(
-        private val props: BotConfigProps,
-        private val handlerFactory: HandlerFactory,
-        private val messageSourceProvider: LocalizedMessageSourceProvider,
-        private val metricsService: MetricsService,
-        val retry: Retry,
-        val rateLimiter: RateLimiter
+    private val props: BotConfigProps,
+    private val handlerFactory: HandlerFactory,
+    private val messageSourceProvider: LocalizedMessageSourceProvider,
+    private val metricsService: MetricsService,
+    val retry: Retry,
+    val rateLimiter: RateLimiter
 ) : TelegramBot(props.token) {
 
     private val handlerStateMap: MutableMap<Long, HandlerState<*>> = mutableMapOf()
@@ -47,7 +47,9 @@ class MyStickersBot(
     @PostConstruct
     fun init() {
         this.setUpdatesListener {
-            it.forEach {
+            it.filter {
+                it.message() != null || it.callbackQuery() != null
+            }.forEach {
                 try {
                     onUpdateReceived(it)
                 } catch (e: Exception) {
@@ -75,7 +77,7 @@ class MyStickersBot(
                 else -> handlerFactory.unknownMessageHandler
             }
             handlerStateMap.containsKey(chatId) -> prepareStatefulHandler(chatId)
-            update.message()?.text() in arrayOf("/start", "/help")  -> handlerFactory.startHandler
+            update.message()?.text() in arrayOf("/start", "/help") -> handlerFactory.startHandler
             update.message()?.text() == "/language" -> handlerFactory.languageHandler
             update.message()?.text() == "/delete" -> handlerFactory.deleteHandler
             update.message()?.text() == "/download" -> handlerFactory.downloadHandler
@@ -89,36 +91,36 @@ class MyStickersBot(
         metricsService.trackIncoming(chatId, handler.action)
 
         handler.toMono()
-                .flatMap { it.handle(this, update) }
-                .doOnNext {
-                    if (it is StatefulHandler<*>) {
-                        if (it.getState().finished) {
-                            handlerStateMap.remove(chatId)
-                        } else {
-                            handlerStateMap[chatId] = it.getState()
-                        }
+            .flatMap { it.handle(this, update) }
+            .doOnNext {
+                if (it is StatefulHandler<*>) {
+                    if (it.getState().finished) {
+                        handlerStateMap.remove(chatId)
+                    } else {
+                        handlerStateMap[chatId] = it.getState()
                     }
                 }
-                .doOnEach {
-                    if (!it.isOnError) return@doOnEach
+            }
+            .doOnEach {
+                if (!it.isOnError) return@doOnEach
 
-                    it.context.resolveMdc()
-                    val t = it.throwable!!
+                it.contextView.resolveMdc()
+                val t = it.throwable!!
 
-                    if (t is HandlerException) {
-                        logException(t.parent)
-                        if (t.handler is StatefulHandler<*>) {
-                            handlerStateMap.remove(chatId)
-                        }
-                    } else {
-                        logException(t)
+                if (t is HandlerException) {
+                    logException(t.parent)
+                    if (t.handler is StatefulHandler<*>) {
+                        handlerStateMap.remove(chatId)
                     }
-                    sendErrorMessagesAsync(chatId, MDC.get(MDC_CALL_ID))
-                    MDC.clear()
-                }.subscriberContext {
-                    it.put(MDC_CALL_ID, UUID.randomUUID().toString())
-                            .put(MDC_USER_ID, chatId.toString())
-                }.subscribe()
+                } else {
+                    logException(t)
+                }
+                sendErrorMessagesAsync(chatId, MDC.get(MDC_CALL_ID))
+                MDC.clear()
+            }.contextWrite {
+                it.put(MDC_CALL_ID, UUID.randomUUID().toString())
+                    .put(MDC_USER_ID, chatId.toString())
+            }.subscribe()
     }
 
     private fun handleGroup(update: Update) {
@@ -130,7 +132,7 @@ class MyStickersBot(
     private fun isGroup(update: Update): Boolean {
         val type = update.message()?.chat()?.type() ?: return false
         return when (type) {
-            Chat.Type.group, Chat.Type.supergroup, Chat.Type.channel -> true
+            Chat.Type.group, Chat.Type.supergroup -> true
             else -> false
         }
     }

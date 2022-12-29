@@ -56,7 +56,8 @@ class PngService {
         reader = BufferedReader(InputStreamReader(inputStream))
         reader.lines().collect(Collectors.joining("\n")).also { logDebug("Result: $it") }
     }
-    private fun tooBigSize(pngFilePath: Path?) = (Files.size(pngFilePath) / 1024) > 500
+
+    fun tooBigSize(pngFilePath: Path?) = (Files.size(pngFilePath) / 1024) > 500
 
     companion object : Loggable
 
