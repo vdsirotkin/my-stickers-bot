@@ -10,6 +10,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
+import com.vdsirotkin.telegram.mystickersbot.dto.packType
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
@@ -65,11 +66,12 @@ class DownloadStickerHandler(
         state<State.WaitingForSticker> {
             on<ReceivedMessageEvent> {
                 val (bot, update, messageSource) = it
-                if (update.message().sticker() == null) {
+                val sticker = update.message().sticker()
+                if (sticker == null) {
                     bot.executeAsync(SendMessageWithAction(update.message().chat().id(), messageSource["not.sticker.download"], action).replyToMessageId(update.message().messageId()))
                     return@on dontTransition()
                 }
-                val pngFile = preparePngFile(bot, StickerMeta(update.message().sticker().fileId(), update.message().sticker().fileUniqueId()))
+                val pngFile = preparePngFile(bot, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), emoji = null, sticker.packType()))
                 withTempFile(pngFile) { file ->
                     bot.executeAsync(SendDocument(update.message().chat().id(), file).replyToMessageId(update.message().messageId()))
                     bot.executeAsync(SendPhoto(update.message().chat().id(), file).replyToMessageId(update.message().messageId()))

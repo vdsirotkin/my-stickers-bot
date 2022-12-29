@@ -23,5 +23,4 @@ interface StatefulHandler<DATA> : BaseHandler {
             block()
         }.onErrorMap { HandlerException(it, this) }.thenReturn(this)
     }
-
 }

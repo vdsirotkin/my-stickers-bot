@@ -8,8 +8,8 @@ import com.pengrad.telegrambot.request.DeleteStickerFromSet
 import com.pengrad.telegrambot.request.SendMessage
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
-import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
-import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
+import com.vdsirotkin.telegram.mystickersbot.db.entity.getPackName
+import com.vdsirotkin.telegram.mystickersbot.dto.*
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
@@ -28,15 +28,16 @@ import reactor.core.publisher.Mono
 @Component
 @Scope(BeanDefinition.SCOPE_PROTOTYPE)
 class DeleteHandler(
-        override val stickerDao: StickerDAO,
-        override val messageSource: MessageSource) : LocalizedHandler, StatefulHandler<DeleteHandler.State> {
+    override val stickerDao: StickerDAO,
+    override val messageSource: MessageSource
+) : LocalizedHandler, StatefulHandler<DeleteHandler.State> {
 
     private var state: DeleteHandlerState = DeleteHandlerState(NEW, false)
 
     override fun handleInternal(
-            bot: TelegramBot, update: Update,
-            messageSource: MessageSourceWrapper,
-            userEntity: UserEntity
+        bot: TelegramBot, update: Update,
+        messageSource: MessageSourceWrapper,
+        userEntity: UserEntity
     ): Mono<BaseHandler> = statefulMdcMono {
         val chatId = determineChatId(update)
         when (state.data) {
@@ -45,13 +46,12 @@ class DeleteHandler(
                 state = state.copy(data = PROCESSING)
             }
             PROCESSING -> {
-                if (update.message().sticker() != null) {
+                if (update.message() != null && update.message().sticker() != null) {
                     val sticker = update.message().sticker()
-                    val animated = sticker.isAnimated
-                    val packName = if (animated) userEntity.animatedPackName else userEntity.normalPackName
+                    val packName = userEntity.getPackName(sticker.packType())
                     if (sticker.setName() == packName) {
                         bot.executeAsync(DeleteStickerFromSet(sticker.fileId()))
-                        stickerDao.deleteSticker(chatId, sticker.fileId(), animated)
+                        stickerDao.deleteSticker(chatId, sticker.fileId(), sticker.packType())
                         bot.executeAsync(SendMessageWithAction(chatId, messageSource["delete.success"], action).replyToMessageId(update.message().messageId()))
                         state = state.copy(finished = true)
                     } else {
@@ -80,10 +80,10 @@ class DeleteHandler(
 
     private fun SendMessage.addKeyboard(entity: UserEntity, messageSource: MessageSourceWrapper): SendMessage {
         return replyMarkup(
-                InlineKeyboardMarkup(arrayOf(
-                        InlineKeyboardButton(messageSource["sticker.pack.button.text"]).url(packLink(entity.normalPackName)),
-                        InlineKeyboardButton(messageSource["animated.sticker.pack.button.text"]).url(packLink(entity.animatedPackName))
-                ))
+            InlineKeyboardMarkup(arrayOf(
+                InlineKeyboardButton(messageSource["sticker.pack.button.text"]).url(packLink(entity.normalPackName)),
+                InlineKeyboardButton(messageSource["animated.sticker.pack.button.text"]).url(packLink(entity.animatedPackName))
+            ))
         )
     }
 

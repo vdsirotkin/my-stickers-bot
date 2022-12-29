@@ -33,6 +33,4 @@ class DocumentHandler(override val stickerPackMessagesSender: StickerPackMessage
 
     override val action: String
         get() = "DOCUMENT"
-
-
 }

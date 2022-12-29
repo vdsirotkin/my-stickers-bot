@@ -21,6 +21,7 @@ import kotlinx.coroutines.withContext
 import org.slf4j.MDC
 import reactor.core.publisher.Mono
 import reactor.util.context.Context
+import reactor.util.context.ContextView
 import ru.sokomishalov.commons.core.log.loggerFor
 import ru.sokomishalov.commons.core.serialization.OBJECT_MAPPER
 import java.io.BufferedReader
@@ -127,6 +128,11 @@ fun <T> mdcMono(context: CoroutineContext = EmptyCoroutineContext,
 }
 
 fun Context.resolveMdc() {
+    MDC.put(MDC_CALL_ID, this[MDC_CALL_ID])
+    MDC.put(MDC_USER_ID, this[MDC_USER_ID])
+}
+
+fun ContextView.resolveMdc() {
     MDC.put(MDC_CALL_ID, this[MDC_CALL_ID])
     MDC.put(MDC_USER_ID, this[MDC_USER_ID])
 }

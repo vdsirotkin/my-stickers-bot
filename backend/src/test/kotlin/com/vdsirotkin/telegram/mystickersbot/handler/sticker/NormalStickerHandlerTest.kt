@@ -72,6 +72,7 @@ class NormalStickerHandlerTest {
                         every { file() } returns mockk<File>().apply {
                             every { fileId() } returns "792632f6-230b-4b1b-8b5d-087ffd785482"
                         }
+                        every { isOk } returns true
                     })
                 }
                 is CreateNewStickerSet -> (secondArg() as Callback<CreateNewStickerSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java))
@@ -163,6 +164,8 @@ class NormalStickerHandlerTest {
                     every { this@stc.emoji() } returns emoji
                     every { this@stc.fileId() } returns ""
                     every { this@stc.fileUniqueId() } returns ""
+                    every { this@stc.isVideo } returns false
+                    every { this@stc.isAnimated } returns false
                 }
                 every { this@msg.sticker() } returns sticker
                 every { this@msg.chat() } returns mockkClass(Chat::class) cht@{
@@ -176,7 +179,7 @@ class NormalStickerHandlerTest {
 
     private fun setupDao(normalPackCreated: Boolean = false, stickerExists: Boolean = false) {
         val entity = buildDefaultEntity(normalPackCreated)
-        coEvery { dao.stickerExists(entity, any(), false) } returns stickerExists
+        coEvery { dao.stickerExists(entity, any()) } returns stickerExists
         coEvery { dao.getUserEntity(CHAT_ID) } returns entity
     }
 

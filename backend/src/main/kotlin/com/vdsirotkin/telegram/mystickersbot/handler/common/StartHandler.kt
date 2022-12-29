@@ -28,9 +28,6 @@ class StartHandler(
         return mdcMono {
             if (!dao.userRegistered(chatId)) {
                 dao.saveUserPacks(chatId, normalPackName, animatedPackName, vidPackName)
-                logger.info("New user joined")
-            } else {
-                logger.warn("User already registered")
             }
             bot.executeAsync(SendMessageWithAction(chatId, messageSource.getMessage("welcome", null, Locale.ENGLISH), action))
         }.thenReturn(this)

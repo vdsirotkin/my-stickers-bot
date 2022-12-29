@@ -9,6 +9,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
+import com.vdsirotkin.telegram.mystickersbot.dto.packType
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
@@ -39,7 +40,7 @@ class AnimatedStickerHandler(
         val sticker = update.message().sticker()
         logger.info(sticker.toString())
 
-        if (dao.stickerExists(userEntity, sticker, true)) {
+        if (dao.stickerExists(userEntity, sticker)) {
             bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.already.added"], action).replyToMessageId(update.message().messageId()))
             return@mdcMono
         }
@@ -75,7 +76,7 @@ class AnimatedStickerHandler(
                             .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
             )
         }
-        dao.saveSticker(chatId, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji()), true)
+        dao.saveSticker(chatId, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji(), sticker.packType()))
     }.thenReturn(this)
 
     override val action: String
@@ -83,7 +84,7 @@ class AnimatedStickerHandler(
 
     private suspend fun optimizeIfNecessary(originalFile: File, block: suspend (File) -> Unit) {
         withTempFile(originalFile) {
-            // step one - try naive way (handles most of cases actually)
+            // step one - try naive way (handles most of the cases actually)
             val success = kotlin.runCatching { block(originalFile) }.isSuccess
             if (success) return@withTempFile
             logDebug("First step for animated sticker failed! Trying second way")

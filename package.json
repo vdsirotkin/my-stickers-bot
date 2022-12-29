@@ -1,8 +1,0 @@
-{
-  "cacheDirectories": [
-    "backend/node_modules"
-  ],
-  "scripts": {
-    "heroku-postbuild": "cd ./backend && npm i"
-  }
-}

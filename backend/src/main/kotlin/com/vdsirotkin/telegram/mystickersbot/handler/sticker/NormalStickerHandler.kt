@@ -8,6 +8,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
+import com.vdsirotkin.telegram.mystickersbot.dto.packType
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
@@ -49,16 +50,16 @@ class NormalStickerHandler(
                 val (bot, update, messageSource, entity) = it.toEventDC()
                 val chatId = update.message().chat().id()
                 val sticker = update.message().sticker()
-                if (stickerDao.stickerExists(entity, sticker, false)) {
+                if (stickerDao.stickerExists(entity, sticker)) {
                     bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.already.added"], action).replyToMessageId(update.message().messageId()))
                     return@on transitionTo(State.Finished)
                 }
                 logDebug(sticker.toString())
                 if (sticker.emoji() == null) {
                     bot.executeAsync(SendMessageWithAction(chatId, messageSource["emoji.required"], action))
-                    transitionTo(State.WaitingForEmoji(StickerMeta(sticker.fileId(), sticker.fileUniqueId())))
+                    transitionTo(State.WaitingForEmoji(StickerMeta(sticker.fileId(), sticker.fileUniqueId(), emoji = null, sticker.packType())))
                 } else {
-                    transitionTo(State.AllDone(StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji())))
+                    transitionTo(State.AllDone(StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji(), sticker.packType())))
                 }
             }
         }
@@ -117,7 +118,7 @@ class NormalStickerHandler(
                 stickerDao.setCreatedStatus(chatId, normalStickerCreated = true)
                 stickerPackMessagesSender.sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
             }
-            stickerDao.saveSticker(chatId, sticker, false)
+            stickerDao.saveSticker(chatId, sticker, )
         }
     }
 
@@ -128,6 +129,9 @@ class NormalStickerHandler(
         val file = withContext(Dispatchers.IO) { Files.createTempFile(TEMP_FILE_PREFIX, ".webp").toFile() }
         return withTempFile(file) { webpFile ->
             val stickerFile = bot.executeAsync(GetFile(sticker.fileId))
+            if (!stickerFile.isOk) {
+                throw PngNotCreatedException()
+            }
             fileHelper.downloadFile(bot, stickerFile.file().fileId(), webpFile)
             pngService.webpToPng(webpFile)
         }

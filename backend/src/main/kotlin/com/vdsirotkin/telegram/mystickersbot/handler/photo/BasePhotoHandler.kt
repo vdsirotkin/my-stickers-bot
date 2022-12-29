@@ -99,9 +99,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
         bot.executeAsync(SendMessageWithAction(chatId, messageSource["please.wait"], action))
         val file = fileHelper.downloadFile(bot, fileId)
         val resized = try {
-            withTempFile(file) {
-                imageResizer.resizeImage(file)
-            }
+            imageResizer.resizeImage(file)
         } catch (e: PngNotCreatedException) {
             bot.executeAsync(SendMessageWithAction(chatId, messageSource["photo.cant.be.processed"], action))
             return
