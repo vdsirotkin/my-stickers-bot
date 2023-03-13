@@ -72,7 +72,7 @@ class JobProcessorIT(
             }
         }
         coEvery { stickerDAO.getUserEntity(any<Long>()) } returns UserEntity("", "", "")
-        jobProcessor = JobProcessor(JobManager(BatchJobDAO(template), StickerDAO(template)), stickerDAO, bot)
+        jobProcessor = JobProcessor(JobManager(BatchJobDAO(template), StickerDAO(template, Retry.ofDefaults("test"))), stickerDAO, bot)
         val userStatus = generateSequence { UserStatus(ThreadLocalRandom.current().nextLong(100000, 1000000), BatchJobStatus.NOT_STARTED) }.take(jobCount).toMutableList()
         template.save(BatchJobEntity(UUID.randomUUID().toString().also { jobId = it }, "kek", "prived medved", userStatus)).block()
     }

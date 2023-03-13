@@ -9,6 +9,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
+import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
 import com.vdsirotkin.telegram.mystickersbot.dto.packType
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
@@ -69,7 +70,7 @@ class AnimatedStickerHandler(
                         }
                 )
             }
-            dao.setCreatedStatus(chatId, animatedStickerCreated = true)
+            stickerDao.createSet(chatId, StickerPackType.ANIMATED, userEntity.animatedPackName)
             bot.executeAsync(
                     SendMessageWithAction(chatId, messageSource["created.pack"], action)
                             .replyToMessageId(update.message().messageId())

@@ -5,10 +5,7 @@ import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.request.GetFile
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
-import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
-import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
-import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
-import com.vdsirotkin.telegram.mystickersbot.dto.packType
+import com.vdsirotkin.telegram.mystickersbot.dto.*
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
@@ -115,10 +112,10 @@ class NormalStickerHandler(
                 stickerPackMessagesSender.sendSuccessAdd(bot, chatId, messageSource, messageId, entity, action)
             } else {
                 stickerPackManagementService.createNewPack(bot, chatId, it, entity, sticker.emoji)
-                stickerDao.setCreatedStatus(chatId, normalStickerCreated = true)
+                stickerDao.createSet(chatId, StickerPackType.NORMAL, entity.normalPackName)
                 stickerPackMessagesSender.sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
             }
-            stickerDao.saveSticker(chatId, sticker, )
+            stickerDao.saveSticker(chatId, sticker)
         }
     }
 

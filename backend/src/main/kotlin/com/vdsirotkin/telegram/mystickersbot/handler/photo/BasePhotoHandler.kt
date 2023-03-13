@@ -7,6 +7,7 @@ import com.pengrad.telegrambot.request.EditMessageReplyMarkup
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
+import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
@@ -110,7 +111,7 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
                 stickerPackMessagesSender.sendSuccessAdd(bot, chatId, messageSource, messageId, entity, action)
             } else {
                 stickerPackManagementService.createNewPack(bot, chatId, resized, entity, emoji)
-                stickerDao.setCreatedStatus(chatId, normalStickerCreated = true)
+                stickerDao.createSet(chatId, StickerPackType.NORMAL, entity.normalPackName)
                 stickerPackMessagesSender.sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
             }
         }

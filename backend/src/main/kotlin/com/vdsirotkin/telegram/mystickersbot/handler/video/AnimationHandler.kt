@@ -6,11 +6,11 @@ import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup
 import com.pengrad.telegrambot.request.SendMessage
-import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
+import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
@@ -35,7 +35,7 @@ class AnimationHandler(
     private val fileHelper: FileHelper,
     private val stickerPackManagementService: StickerPackManagementService,
     private val stickerPackMessagesSender: StickerPackMessagesSender,
-    private val botConfigProps: BotConfigProps
+    private val packNameProvider: PackNameProvider,
 ): LocalizedHandler, StatefulHandler<AnimationHandler.State> {
 
     private val supportedTypes = arrayOf("video/mp4")
@@ -46,7 +46,7 @@ class AnimationHandler(
         initialState(State.New)
         state<State.New> {
             on<Event.MessageReceivedEvent> {
-                val (bot, update, messageSourceWrapper, userEntity) = it
+                val (bot, update, messageSourceWrapper, _) = it
                 val chatId = determineChatId(update)
                 if (!supportedTypes.contains(update.message().animation().mimeType())) {
                     bot.executeAsync(SendMessage(update.message().chat().id(), messageSourceWrapper["video.not.supported"]))
@@ -97,7 +97,7 @@ class AnimationHandler(
             } else {
                 val resultUser = updateVideoPackNameIfNesessary(user)
                 stickerPackManagementService.video().createNewPack(bot, user.userId.toLong(), webmFile, resultUser, emojiStr)
-                stickerDao.setCreatedStatus(resultUser.userId.toLong(), videoPackCreated = true)
+                stickerDao.createSet(user.userId.toLong(), StickerPackType.VIDEO, user.videoPackName)
                 stickerPackMessagesSender.video().sendSuccessCreated(bot, user.userId.toLong(), messageSourceWrapper, message.messageId(), resultUser, action)
             }
         }
@@ -105,7 +105,7 @@ class AnimationHandler(
 
     private suspend fun updateVideoPackNameIfNesessary(entity: UserEntity): UserEntity {
         if (entity.videoPackName.isNotEmpty()) return entity
-        val vidPackName = "vid_stckr_${entity.userId}_by_${botConfigProps.username}"
+        val vidPackName = with(packNameProvider) { StickerPackType.VIDEO(entity.userId.toLong(), 0) }
         return stickerDao.saveVideoPackName(entity.userId, vidPackName)
     }
 
