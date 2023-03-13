@@ -7,13 +7,17 @@ spring:
     user:
       name: admin
       password: ${ADMIN_PASS:admin}
+  data:
+    mongodb:
+      uri: mongodb://root:root@localhost:27017/
+      database: my_sticker_bot
 
 
 bot:
   webhook: false
   token: ${BOT_TOKEN}
   username: ${BOT_USERNAME}
-  service-account-id: ${SERVICE_ACCOUNT_ID}
+  service-account-id: ${SERVICE_ACCOUNT_ID:0}
 
 
 management:
@@ -32,3 +36,7 @@ vaadin:
 dashbot:
   enabled: true
   api-key: ${DASHBOT_API_KEY}
+ssh:
+  shell:
+    user: admin
+    password: ${ADMIN_PASS:admin}

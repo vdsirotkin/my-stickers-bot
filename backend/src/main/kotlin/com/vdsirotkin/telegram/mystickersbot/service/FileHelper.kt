@@ -36,8 +36,7 @@ class FileHelper(
         webClient
                 .get()
                 .uri(fullUrl)
-                .exchange()
-                .flatMapMany { it.body(BodyExtractors.toDataBuffers()) }
+                .exchangeToFlux { it.body(BodyExtractors.toDataBuffers()) }
                 .let {
                     DataBufferUtils.write(it, tempFile)
                 }

@@ -5,7 +5,9 @@ import com.pengrad.telegrambot.model.Update
 import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
+import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
+import com.vdsirotkin.telegram.mystickersbot.util.PackNameProvider
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
 import org.springframework.context.MessageSource
@@ -16,15 +18,15 @@ import java.util.*
 
 @Service
 class StartHandler(
-        private val dao: StickerDAO,
-        private val messageSource: MessageSource,
-        private val botConfigProps: BotConfigProps
+    private val dao: StickerDAO,
+    private val messageSource: MessageSource,
+    private val packNameProvider: PackNameProvider,
 ) : BaseHandler {
     override fun handle(bot: TelegramBot, update: Update): Mono<BaseHandler> {
         val chatId = update.message().chat().id()
-        val normalPackName = "def_stckr_${chatId}_by_${botConfigProps.username}"
-        val animatedPackName = "anim_stckr_${chatId}_by_${botConfigProps.username}"
-        val vidPackName = "vid_stckr_${chatId}_by_${botConfigProps.username}"
+        val normalPackName = with(packNameProvider) { StickerPackType.NORMAL(chatId, 0) }
+        val animatedPackName = with(packNameProvider) { StickerPackType.ANIMATED(chatId, 0) }
+        val vidPackName = with(packNameProvider) { StickerPackType.VIDEO(chatId, 0) }
         return mdcMono {
             if (!dao.userRegistered(chatId)) {
                 dao.saveUserPacks(chatId, normalPackName, animatedPackName, vidPackName)

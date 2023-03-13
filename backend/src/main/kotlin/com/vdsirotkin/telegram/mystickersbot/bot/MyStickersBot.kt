@@ -25,6 +25,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.slf4j.MDCContext
 import org.slf4j.MDC
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import reactor.kotlin.core.publisher.toMono
 import ru.sokomishalov.commons.core.log.Loggable
@@ -38,7 +39,7 @@ class MyStickersBot(
     private val handlerFactory: HandlerFactory,
     private val messageSourceProvider: LocalizedMessageSourceProvider,
     private val metricsService: MetricsService,
-    val retry: Retry,
+    @Qualifier("telegramApiRetry") val retry: Retry,
     val rateLimiter: RateLimiter
 ) : TelegramBot(props.token) {
 
