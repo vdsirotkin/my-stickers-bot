@@ -5,7 +5,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.USER_ENTITY_COLLECTION_NA
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity.*
 import com.vdsirotkin.telegram.mystickersbot.db.entity.getPackName
-import com.vdsirotkin.telegram.mystickersbot.db.entity.getPackSet
+import com.vdsirotkin.telegram.mystickersbot.db.entity.getPackSets
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
 import com.vdsirotkin.telegram.mystickersbot.dto.packType
@@ -35,7 +35,8 @@ class StickerDAO(
     ): Boolean {
         val packType = sticker.packType()
         val stickerPackContains = entity
-            .getPackSet(packType)
+            .getPackSets(packType)
+            .flatMap { it.stickerSet }
             .firstOrNull { it.fileId == sticker.fileUniqueId() } != null
         val thisBotSticker = sticker.setName() == entity.getPackName(packType)
         return stickerPackContains || thisBotSticker
@@ -44,7 +45,7 @@ class StickerDAO(
     suspend fun userRegistered(userId: Long): Boolean = template.exists(Query.query(Criteria.where("_id").`is`(userId.toString())), UserEntity::class.java).awaitStrict()
 
     suspend fun saveUserPacks(userId: Long, normalStickerName: String, animatedStickerName: String, vidPackName: String) {
-        return template.save(UserEntity(userId.toString(), normalStickerName, animatedStickerName, vidPackName, migrated = true))
+        return template.save(UserEntity(userId.toString(), normalStickerName, animatedStickerName, vidPackName))
             .awaitUnit()
     }
 
@@ -71,13 +72,6 @@ class StickerDAO(
         retry.executeSuspendFunction {
             template.findById<UserEntity>(chatId.toString())
                 .doOnNext {
-                    // legacy
-                    when (packType) {
-                        StickerPackType.NORMAL -> it.normalPackCreated = true
-                        StickerPackType.ANIMATED -> it.animatedPackCreated = true
-                        StickerPackType.VIDEO -> it.videoPackCreated = true
-                    }
-
                     // new
                     if (it.stickerSets.find { it.packName == packName } == null) {
                         val set = when (packType) {
@@ -102,10 +96,6 @@ class StickerDAO(
             template.findById(chatId.toString(), UserEntity::class.java)
                 .doOnNext {
                     val stickerInfo = StickerInfo(sticker.fileUniqueId, sticker.fileId)
-                    // legacy
-                    val set = it.getPackSet(sticker.type)
-                    set.add(stickerInfo)
-
                     // new. assume that for now we have only one set of each type
                     val stickerSet = when (sticker.type) {
                         StickerPackType.NORMAL -> it.stickerSets.filterIsInstance<StaticStickerSet>()
@@ -134,10 +124,6 @@ class StickerDAO(
         retry.executeSuspendFunction {
             template.findById(chatId.toString(), UserEntity::class.java)
                 .doOnNext {
-                    // legacy
-                    val set = it.getPackSet(packType)
-                    set.removeIf { it.fileId == fileId }
-
                     // new
                     val stickerSet = when (packType) {
                         StickerPackType.NORMAL -> it.stickerSets.filterIsInstance<StaticStickerSet>()

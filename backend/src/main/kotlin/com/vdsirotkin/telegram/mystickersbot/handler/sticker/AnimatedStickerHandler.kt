@@ -2,9 +2,6 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
-import com.pengrad.telegrambot.request.AddStickerToSet
-import com.pengrad.telegrambot.request.CreateNewStickerSet
-import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
@@ -14,6 +11,8 @@ import com.vdsirotkin.telegram.mystickersbot.dto.packType
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
+import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
+import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.util.*
 import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
@@ -25,59 +24,40 @@ import java.nio.file.StandardCopyOption
 
 @Service
 class AnimatedStickerHandler(
-        private val dao: StickerDAO,
-        private val props: BotConfigProps,
-        override val stickerDao: StickerDAO,
-        override val messageSource: MessageSource,
-        val fileHelper: FileHelper
+    override val stickerDao: StickerDAO,
+    override val messageSource: MessageSource,
+    private val fileHelper: FileHelper,
+    private val stickerPackManagementService: StickerPackManagementService,
+    private val stickerPackMessagesSender: StickerPackMessagesSender,
 ) : LocalizedHandler {
 
     override fun handleInternal(
-            bot: TelegramBot, update: Update,
-            messageSource: MessageSourceWrapper,
-            userEntity: UserEntity
+        bot: TelegramBot, update: Update,
+        messageSource: MessageSourceWrapper,
+        userEntity: UserEntity
     ): Mono<BaseHandler> = mdcMono {
         val chatId = update.message().chat().id()
         val sticker = update.message().sticker()
         logger.info(sticker.toString())
 
-        if (dao.stickerExists(userEntity, sticker)) {
+        if (stickerDao.stickerExists(userEntity, sticker)) {
             bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.already.added"], action).replyToMessageId(update.message().messageId()))
             return@mdcMono
         }
         val stickerFile = fileHelper.downloadFile(bot, sticker.fileId())
         if (userEntity.animatedPackCreated) {
             optimizeIfNecessary(stickerFile) {
-                bot.executeAsync(AddStickerToSet.tgsSticker(chatId, userEntity.animatedPackName, sticker.emoji() ?: "🙂", it)
-                        .apply {
-                            if (sticker.maskPosition() != null) {
-                                maskPosition(sticker.maskPosition())
-                            }
-                        })
+                stickerPackManagementService.animated().addStickerToPack(bot, chatId, userEntity, sticker, it)
             }
-            bot.executeAsync(
-                    SendMessageWithAction(chatId, messageSource["sticker.added"], action)
-                            .replyToMessageId(update.message().messageId())
-                            .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
-            )
+            stickerPackMessagesSender.animated().sendSuccessAdd(bot, chatId, update.message().messageId(), messageSource, userEntity, action)
         } else {
             optimizeIfNecessary(stickerFile) {
-                bot.executeAsync(CreateNewStickerSet.tgsSticker(chatId, userEntity.animatedPackName, "Your animated stickers - @${props.username}", sticker.emoji() ?: "🙂", it)
-                        .apply {
-                            if (sticker.maskPosition() != null) {
-                                maskPosition(sticker.maskPosition())
-                            }
-                        }
-                )
+                stickerPackManagementService.animated().createNewPack(bot, chatId, userEntity, sticker, it)
             }
             stickerDao.createSet(chatId, StickerPackType.ANIMATED, userEntity.animatedPackName)
-            bot.executeAsync(
-                    SendMessageWithAction(chatId, messageSource["created.pack"], action)
-                            .replyToMessageId(update.message().messageId())
-                            .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
-            )
+            stickerPackMessagesSender.animated().sendSuccessCreated(bot, chatId, update.message().messageId(), messageSource, userEntity, action)
         }
-        dao.saveSticker(chatId, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji(), sticker.packType()))
+        stickerDao.saveSticker(chatId, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji(), sticker.packType()))
     }.thenReturn(this)
 
     override val action: String

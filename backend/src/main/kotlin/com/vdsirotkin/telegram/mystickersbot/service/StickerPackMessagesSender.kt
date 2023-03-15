@@ -12,27 +12,55 @@ import org.springframework.stereotype.Service
 @Service
 class StickerPackMessagesSender {
 
-    suspend fun sendSuccessAdd(bot: TelegramBot,
-                               chatId: Long,
-                               messageSource: MessageSourceWrapper,
-                               messageId: Int,
-                               entity: UserEntity, action: String) {
-        bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.added"], action)
-                .replyToMessageId(messageId)
-                .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.normalPackName))
-        )
-    }
+    fun static() = Static()
+    fun animated() = Animated()
+    fun video() = Video()
 
-    suspend fun sendSuccessCreated(bot: TelegramBot, chatId: Long,
+    inner class Static {
+        suspend fun sendSuccessAdd(bot: TelegramBot,
+                                   chatId: Long,
                                    messageSource: MessageSourceWrapper,
                                    messageId: Int,
                                    entity: UserEntity, action: String) {
-        bot.executeAsync(SendMessageWithAction(chatId, messageSource["created.pack"], action)
+            bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.added"], action)
+                .replyToMessageId(messageId)
+                .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.normalPackName))
+            )
+        }
+
+        suspend fun sendSuccessCreated(bot: TelegramBot, chatId: Long,
+                                       messageSource: MessageSourceWrapper,
+                                       messageId: Int,
+                                       entity: UserEntity, action: String) {
+            bot.executeAsync(SendMessageWithAction(chatId, messageSource["created.pack"], action)
                 .replyToMessageId(messageId)
                 .addInlineKeyboard(messageSource["sticker.pack.button.text"], packLink(entity.normalPackName)))
+        }
     }
 
-    fun video() = Video()
+    inner class Animated {
+        suspend fun sendSuccessAdd(bot: TelegramBot, chatId: Long, messageId: Int, messageSource: MessageSourceWrapper, userEntity: UserEntity, action: String) {
+            bot.executeAsync(
+                SendMessageWithAction(chatId, messageSource["sticker.added"], action)
+                    .replyToMessageId(messageId)
+                    .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
+            )
+        }
+
+        suspend fun sendSuccessCreated(
+            bot: TelegramBot,
+            chatId: Long,
+            messageId: Int,
+            messageSource: MessageSourceWrapper,
+            userEntity: UserEntity, action: String
+        ) {
+            bot.executeAsync(
+                SendMessageWithAction(chatId, messageSource["created.pack"], action)
+                    .replyToMessageId(messageId)
+                    .addInlineKeyboard(messageSource["animated.sticker.pack.button.text"], packLink(userEntity.animatedPackName))
+            )
+        }
+    }
 
     inner class Video {
         suspend fun sendSuccessAdd(bot: TelegramBot,

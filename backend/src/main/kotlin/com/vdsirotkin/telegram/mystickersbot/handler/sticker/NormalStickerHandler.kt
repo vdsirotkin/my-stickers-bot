@@ -108,12 +108,12 @@ class NormalStickerHandler(
     ) {
         withTempFile(preparePngFile(bot, sticker)) {
             if (entity.normalPackCreated) {
-                stickerPackManagementService.addStickerToPack(bot, chatId, it, entity, sticker.emoji)
-                stickerPackMessagesSender.sendSuccessAdd(bot, chatId, messageSource, messageId, entity, action)
+                stickerPackManagementService.static().addStickerToPack(bot, chatId, it, entity, sticker.emoji)
+                stickerPackMessagesSender.static().sendSuccessAdd(bot, chatId, messageSource, messageId, entity, action)
             } else {
-                stickerPackManagementService.createNewPack(bot, chatId, it, entity, sticker.emoji)
+                stickerPackManagementService.static().createNewPack(bot, chatId, it, entity, sticker.emoji)
                 stickerDao.createSet(chatId, StickerPackType.NORMAL, entity.normalPackName)
-                stickerPackMessagesSender.sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
+                stickerPackMessagesSender.static().sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
             }
             stickerDao.saveSticker(chatId, sticker)
         }
