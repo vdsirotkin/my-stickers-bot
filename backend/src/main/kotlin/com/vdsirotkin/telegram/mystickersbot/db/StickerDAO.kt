@@ -44,7 +44,7 @@ class StickerDAO(
     suspend fun userRegistered(userId: Long): Boolean = template.exists(Query.query(Criteria.where("_id").`is`(userId.toString())), UserEntity::class.java).awaitStrict()
 
     suspend fun saveUserPacks(userId: Long, normalStickerName: String, animatedStickerName: String, vidPackName: String) {
-        return template.save(UserEntity(userId.toString(), normalStickerName, animatedStickerName, vidPackName))
+        return template.save(UserEntity(userId.toString(), normalStickerName, animatedStickerName, vidPackName, migrated = true))
             .awaitUnit()
     }
 
