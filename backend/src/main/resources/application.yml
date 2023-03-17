@@ -34,7 +34,7 @@ logging:
 vaadin:
   heartbeatInterval: 5
 dashbot:
-  enabled: true
+  enabled: false
   api-key: ${DASHBOT_API_KEY}
 ssh:
   shell:

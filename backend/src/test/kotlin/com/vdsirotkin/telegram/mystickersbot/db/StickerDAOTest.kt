@@ -1,8 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.db
 
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
-import io.github.resilience4j.retry.Retry
-import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
@@ -22,11 +20,9 @@ class StickerDAOTest {
 
     lateinit var stickerDAO: StickerDAO
 
-    val retry = spyk(Retry.ofDefaults("test"))
-
     @BeforeEach
     fun setup() {
-        stickerDAO = StickerDAO(template, retry)
+        stickerDAO = StickerDAO(template)
 
         template.remove(UserEntity::class.java).all().block()
     }

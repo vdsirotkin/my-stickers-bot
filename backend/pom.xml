@@ -18,8 +18,8 @@
         <java.version>11</java.version>
         <vaadin.productionMode>true</vaadin.productionMode>
         <vaadin.version>14.3.0</vaadin.version>
-        <kotlin.version>1.6.10</kotlin.version>
-        <kotlin-coroutines.version>1.6.0</kotlin-coroutines.version>
+        <kotlin.version>1.8.10</kotlin.version>
+        <kotlin-coroutines.version>1.6.4</kotlin-coroutines.version>
     </properties>
 
     <repositories>
@@ -93,7 +93,7 @@
         <dependency>
             <groupId>com.github.pengrad</groupId>
             <artifactId>java-telegram-bot-api</artifactId>
-            <version>5.7.0</version>
+            <version>6.5.0</version>
         </dependency>
         <dependency>
             <groupId>com.github.sokomishalov</groupId>
@@ -130,6 +130,11 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <groupId>net.coobird</groupId>
+            <artifactId>thumbnailator</artifactId>
+            <version>[0.4, 0.5)</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
@@ -162,11 +167,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>net.coobird</groupId>
-            <artifactId>thumbnailator</artifactId>
-            <version>[0.4, 0.5)</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-imaging</artifactId>
             <version>1.0-alpha1</version>
@@ -175,11 +175,6 @@
             <groupId>com.vdurmont</groupId>
             <artifactId>emoji-java</artifactId>
             <version>5.1.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.tinder.statemachine</groupId>
-            <artifactId>statemachine</artifactId>
-            <version>0.2.0</version>
         </dependency>
         <dependency>
             <groupId>com.github.vdsirotkin</groupId>
@@ -203,6 +198,7 @@
                     <compilerPlugins>
                         <plugin>spring</plugin>
                     </compilerPlugins>
+                    <args>-Xcontext-receivers</args>
                 </configuration>
                 <dependencies>
                     <dependency>

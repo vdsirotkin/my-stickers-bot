@@ -54,7 +54,7 @@ class VideoStickerHandler(
             stickerPackMessagesSender.video().sendSuccessCreated(bot, chatId, messageSource, update.message().messageId(), resultEntity, action)
             stickerDao.createSet(chatId, StickerPackType.VIDEO, entity.videoPackName)
         }
-        stickerDao.saveSticker(chatId, StickerMeta(fileId, sticker.fileUniqueId(), sticker.emoji(), sticker.packType()))
+        stickerDao.saveSticker(chatId, StickerMeta(fileId, sticker.fileUniqueId(), sticker.emoji(), sticker.packType()), createdStickerUniqueFileId = "")
     }.thenReturn(this)
 
     private suspend fun updateVideoPackNameIfNecessary(entity: UserEntity): UserEntity {

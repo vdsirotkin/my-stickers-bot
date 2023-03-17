@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.TypeAlias
 import org.springframework.data.annotation.Version
 import org.springframework.data.mongodb.core.mapping.Document
+import org.springframework.data.mongodb.core.mapping.Field
 import java.util.*
 
 const val USER_ENTITY_COLLECTION_NAME = "userEntity"
@@ -18,23 +19,10 @@ data class UserEntity(
     @Deprecated(message = "legacy")
     val animatedPackName: String,
     @Deprecated(message = "legacy")
-    val videoPackName: String = "",
-    @Deprecated(message = "legacy")
-    var normalPackCreated: Boolean = false,
-    @Deprecated(message = "legacy")
-    var animatedPackCreated: Boolean = false,
-    @Deprecated(message = "legacy")
-    var videoPackCreated: Boolean = false,
-    @Deprecated(message = "legacy")
-    val normalPackSet: MutableSet<StickerInfo> = mutableSetOf(),
-    @Deprecated(message = "legacy")
-    val animatedPackSet: MutableSet<StickerInfo> = mutableSetOf(),
-    @Deprecated(message = "legacy")
-    val videoPackSet: MutableSet<StickerInfo> = mutableSetOf(),
+    var videoPackName: String = "",
     val stickerSets: MutableSet<StickerSetEntity> = mutableSetOf(),
     val emojiSets: MutableSet<StickerSetEntity> = mutableSetOf(),
     val language: String = "en",
-    var migrated: Boolean = false,
     @Version var version: Int? = null,
 ) {
 
@@ -66,9 +54,19 @@ data class UserEntity(
     ) : StickerSetEntity
 
     data class StickerInfo(
-        val fileId: String,
-        val filePath: String
+        @Field("fileId")
+        val originalStickerFileUniqueId: String,
+        val createdStickerFileUniqueId: String? = null
     )
+
+    val normalPackCreated: Boolean
+        get() = stickerSets.filterIsInstance<StaticStickerSet>().isNotEmpty()
+
+    val animatedPackCreated: Boolean
+        get() = stickerSets.filterIsInstance<AnimatedStickerSet>().isNotEmpty()
+
+    val videoPackCreated: Boolean
+        get() = stickerSets.filterIsInstance<VideoStickerSet>().isNotEmpty()
 }
 
 fun UserEntity.getPackName(packType: StickerPackType): String =
@@ -78,11 +76,11 @@ fun UserEntity.getPackName(packType: StickerPackType): String =
         StickerPackType.VIDEO -> videoPackName
     }
 
-fun UserEntity.getPackSet(packType: StickerPackType): MutableSet<UserEntity.StickerInfo> =
+fun UserEntity.getPackSets(packType: StickerPackType) =
     when (packType) {
-        StickerPackType.NORMAL -> normalPackSet
-        StickerPackType.ANIMATED -> animatedPackSet
-        StickerPackType.VIDEO -> videoPackSet
+        StickerPackType.NORMAL -> stickerSets.filterIsInstance<UserEntity.StaticStickerSet>()
+        StickerPackType.ANIMATED -> stickerSets.filterIsInstance<UserEntity.AnimatedStickerSet>()
+        StickerPackType.VIDEO -> stickerSets.filterIsInstance<UserEntity.VideoStickerSet>()
     }
 
 val UserEntity.locale: Locale
