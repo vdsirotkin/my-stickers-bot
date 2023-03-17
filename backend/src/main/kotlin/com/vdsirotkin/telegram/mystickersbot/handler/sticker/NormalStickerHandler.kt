@@ -115,7 +115,7 @@ class NormalStickerHandler(
                 stickerDao.createSet(chatId, StickerPackType.NORMAL, entity.normalPackName)
                 stickerPackMessagesSender.static().sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
             }
-            stickerDao.saveSticker(chatId, sticker)
+            stickerDao.saveSticker(chatId, sticker, createdStickerUniqueFileId = "")
         }
     }
 

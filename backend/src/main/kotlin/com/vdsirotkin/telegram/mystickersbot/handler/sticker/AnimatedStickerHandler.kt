@@ -2,6 +2,7 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.request.UploadStickerFile
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
@@ -57,7 +58,11 @@ class AnimatedStickerHandler(
             stickerDao.createSet(chatId, StickerPackType.ANIMATED, userEntity.animatedPackName)
             stickerPackMessagesSender.animated().sendSuccessCreated(bot, chatId, update.message().messageId(), messageSource, userEntity, action)
         }
-        stickerDao.saveSticker(chatId, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji(), sticker.packType()))
+        stickerDao.saveSticker(
+            chatId = chatId,
+            sticker = StickerMeta(sticker.fileId(), sticker.fileUniqueId(), sticker.emoji(), sticker.packType()),
+            createdStickerUniqueFileId = ""
+        )
     }.thenReturn(this)
 
     override val action: String

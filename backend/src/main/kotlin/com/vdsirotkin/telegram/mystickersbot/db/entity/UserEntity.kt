@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.TypeAlias
 import org.springframework.data.annotation.Version
 import org.springframework.data.mongodb.core.mapping.Document
+import org.springframework.data.mongodb.core.mapping.Field
 import java.util.*
 
 const val USER_ENTITY_COLLECTION_NAME = "userEntity"
@@ -18,7 +19,7 @@ data class UserEntity(
     @Deprecated(message = "legacy")
     val animatedPackName: String,
     @Deprecated(message = "legacy")
-    val videoPackName: String = "",
+    var videoPackName: String = "",
     val stickerSets: MutableSet<StickerSetEntity> = mutableSetOf(),
     val emojiSets: MutableSet<StickerSetEntity> = mutableSetOf(),
     val language: String = "en",
@@ -53,8 +54,9 @@ data class UserEntity(
     ) : StickerSetEntity
 
     data class StickerInfo(
-        val fileId: String,
-        val filePath: String
+        @Field("fileId")
+        val originalStickerFileUniqueId: String,
+        val createdStickerFileUniqueId: String? = null
     )
 
     val normalPackCreated: Boolean

@@ -51,7 +51,7 @@ class DeleteHandler(
                     val packName = userEntity.getPackName(sticker.packType())
                     if (sticker.setName() == packName) {
                         bot.executeAsync(DeleteStickerFromSet(sticker.fileId()))
-                        stickerDao.deleteSticker(chatId, sticker.fileId(), sticker.packType())
+                        stickerDao.deleteSticker(chatId, sticker.fileUniqueId(), sticker.packType())
                         bot.executeAsync(SendMessageWithAction(chatId, messageSource["delete.success"], action).replyToMessageId(update.message().messageId()))
                         state = state.copy(finished = true)
                     } else {

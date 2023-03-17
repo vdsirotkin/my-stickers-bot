@@ -24,8 +24,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.platform.commons.util.ReflectionUtils
-import org.mockito.Mock
-import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
@@ -72,7 +70,7 @@ class JobProcessorIT(
             }
         }
         coEvery { stickerDAO.getUserEntity(any<Long>()) } returns UserEntity("", "", "")
-        jobProcessor = JobProcessor(JobManager(BatchJobDAO(template), StickerDAO(template, Retry.ofDefaults("test"))), stickerDAO, bot)
+        jobProcessor = JobProcessor(JobManager(BatchJobDAO(template), StickerDAO(template)), stickerDAO, bot)
         val userStatus = generateSequence { UserStatus(ThreadLocalRandom.current().nextLong(100000, 1000000), BatchJobStatus.NOT_STARTED) }.take(jobCount).toMutableList()
         template.save(BatchJobEntity(UUID.randomUUID().toString().also { jobId = it }, "kek", "prived medved", userStatus)).block()
     }
