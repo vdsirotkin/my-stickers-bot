@@ -2,7 +2,6 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
-import com.pengrad.telegrambot.request.GetFile
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.*
@@ -14,18 +13,16 @@ import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.service.image.PngService
-import com.vdsirotkin.telegram.mystickersbot.util.*
+import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
+import com.vdsirotkin.telegram.mystickersbot.util.StateMachine
+import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
 import com.vdurmont.emoji.EmojiParser
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.MessageSource
 import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
-import java.io.File
-import java.nio.file.Files
 
 @Service
 @Scope(BeanDefinition.SCOPE_PROTOTYPE)
@@ -106,32 +103,15 @@ class NormalStickerHandler(
             messageSource: MessageSourceWrapper,
             messageId: Int,
     ) {
-        withTempFile(preparePngFile(bot, sticker)) {
-            if (entity.normalPackCreated) {
-                stickerPackManagementService.static().addStickerToPack(bot, chatId, it, entity, sticker.emoji)
-                stickerPackMessagesSender.static().sendSuccessAdd(bot, chatId, messageSource, messageId, entity, action)
-            } else {
-                stickerPackManagementService.static().createNewPack(bot, chatId, it, entity, sticker.emoji)
-                stickerDao.createSet(chatId, StickerPackType.NORMAL, entity.normalPackName)
-                stickerPackMessagesSender.static().sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
-            }
-            stickerDao.saveSticker(chatId, sticker, createdStickerUniqueFileId = "")
+        if (entity.normalPackCreated) {
+            stickerPackManagementService.static().addStickerToPack(bot, chatId, sticker.fileId, entity, sticker.emoji)
+            stickerPackMessagesSender.static().sendSuccessAdd(bot, chatId, messageSource, messageId, entity, action)
+        } else {
+            stickerPackManagementService.static().createNewPack(bot, chatId, sticker.fileId, entity, sticker.emoji)
+            stickerDao.createSet(chatId, StickerPackType.NORMAL, entity.normalPackName)
+            stickerPackMessagesSender.static().sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
         }
-    }
-
-    private suspend fun preparePngFile(
-            bot: TelegramBot,
-            sticker: StickerMeta,
-    ): File {
-        val file = withContext(Dispatchers.IO) { Files.createTempFile(TEMP_FILE_PREFIX, ".webp").toFile() }
-        return withTempFile(file) { webpFile ->
-            val stickerFile = bot.executeAsync(GetFile(sticker.fileId))
-            if (!stickerFile.isOk) {
-                throw PngNotCreatedException()
-            }
-            fileHelper.downloadFile(bot, stickerFile.file().fileId(), webpFile)
-            pngService.webpToPng(webpFile)
-        }
+        stickerDao.saveSticker(chatId, sticker, createdStickerUniqueFileId = "")
     }
 
     override fun handleInternal(

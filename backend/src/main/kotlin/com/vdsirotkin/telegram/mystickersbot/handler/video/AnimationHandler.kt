@@ -2,10 +2,12 @@ package com.vdsirotkin.telegram.mystickersbot.handler.video
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Message
+import com.pengrad.telegrambot.model.Sticker
 import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup
 import com.pengrad.telegrambot.request.SendMessage
+import com.pengrad.telegrambot.request.UploadStickerFile
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
@@ -90,16 +92,17 @@ class AnimationHandler(
     private suspend fun processVideo(bot: TelegramBot, user: UserEntity, message: Message, messageSourceWrapper: MessageSourceWrapper, emojiStr: String) {
         bot.executeAsync(SendMessageWithAction(user.userId, messageSourceWrapper["please.wait"], action))
         val mp4File = fileHelper.downloadFile(bot, message.animation().fileId())
-        withTempFile(videoService.convertToWebm(message.animation(), mp4File)) { webmFile ->
-            if (user.videoPackCreated) {
-                stickerPackManagementService.video().addStickerToPack(bot, user.userId.toLong(), webmFile, user, emojiStr)
-                stickerPackMessagesSender.video().sendSuccessAdd(bot, user.userId.toLong(), messageSourceWrapper, message.messageId(), user, action)
-            } else {
-                val resultUser = updateVideoPackNameIfNesessary(user)
-                stickerPackManagementService.video().createNewPack(bot, user.userId.toLong(), webmFile, resultUser, emojiStr)
-                stickerDao.createSet(user.userId.toLong(), StickerPackType.VIDEO, user.videoPackName)
-                stickerPackMessagesSender.video().sendSuccessCreated(bot, user.userId.toLong(), messageSourceWrapper, message.messageId(), resultUser, action)
-            }
+        val fileResponse = withTempFile(videoService.convertToWebm(message.animation(), mp4File)) { webmFile ->
+            bot.executeAsync(UploadStickerFile(user.userId.toLong(), webmFile, Sticker.Format.video))
+        }
+        if (user.videoPackCreated) {
+            stickerPackManagementService.video().addStickerToPack(bot, user.userId.toLong(), fileResponse.file().fileId(), user, emojiStr)
+            stickerPackMessagesSender.video().sendSuccessAdd(bot, user.userId.toLong(), messageSourceWrapper, message.messageId(), user, action)
+        } else {
+            val resultUser = updateVideoPackNameIfNesessary(user)
+            stickerPackManagementService.video().createNewPack(bot, user.userId.toLong(), fileResponse.file().fileId(), resultUser, emojiStr)
+            stickerDao.createSet(user.userId.toLong(), StickerPackType.VIDEO, user.videoPackName)
+            stickerPackMessagesSender.video().sendSuccessCreated(bot, user.userId.toLong(), messageSourceWrapper, message.messageId(), resultUser, action)
         }
     }
 

@@ -2,7 +2,6 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
-import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
@@ -31,7 +30,6 @@ class VideoStickerHandler(
     private val fileHelper: FileHelper,
     private val stickerPackManagementService: StickerPackManagementService,
     private val stickerPackMessagesSender: StickerPackMessagesSender,
-    private val botConfigProps: BotConfigProps,
     private val packNameProvider: PackNameProvider,
 ): LocalizedHandler {
 
@@ -40,17 +38,16 @@ class VideoStickerHandler(
         val fileId = sticker.fileId()
         val chatId = update.message().chat().id()
 
-        val webmFile = fileHelper.downloadFile(bot, fileId)
         if (stickerDao.stickerExists(entity, sticker)) {
             bot.executeAsync(SendMessageWithAction(chatId, messageSource["sticker.already.added"], action).replyToMessageId(update.message().messageId()))
             return@mdcMono
         }
         if (entity.videoPackCreated) {
-            stickerPackManagementService.video().addStickerToPack(bot, chatId, webmFile, entity, sticker.emoji())
+            stickerPackManagementService.video().addStickerToPack(bot, chatId, sticker.fileId(), entity, sticker.emoji())
             stickerPackMessagesSender.video().sendSuccessAdd(bot, chatId, messageSource, update.message().messageId(), entity, action)
         } else {
             val resultEntity = updateVideoPackNameIfNecessary(entity)
-            stickerPackManagementService.video().createNewPack(bot, chatId, webmFile, resultEntity, sticker.emoji())
+            stickerPackManagementService.video().createNewPack(bot, chatId, sticker.fileId(), resultEntity, sticker.emoji())
             stickerPackMessagesSender.video().sendSuccessCreated(bot, chatId, messageSource, update.message().messageId(), resultEntity, action)
             stickerDao.createSet(chatId, StickerPackType.VIDEO, entity.videoPackName)
         }

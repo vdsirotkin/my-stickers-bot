@@ -91,8 +91,8 @@ suspend fun <T : BaseRequest<T, R>, R : BaseResponse> TelegramBot.executeAsync(m
         suspendCancellableCoroutine { cont ->
             execute(method, object : Callback<T, R> {
                 override fun onResponse(request: T?, response: R) {
-                    if (LOG_RESPONSES) {
-                        loggerFor("responseLogger").info("Request: ${OBJECT_MAPPER.writeValueAsString(request)}\nResponse: ${OBJECT_MAPPER.writeValueAsString(response)}")
+                    if (!response.isOk || LOG_RESPONSES) {
+                        loggerFor("responseLogger").error("Request: $request\nResponse: $response")
                     }
                     cont.resume(response)
                 }

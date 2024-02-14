@@ -1,9 +1,11 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.photo
 
 import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.Sticker
 import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup
+import com.pengrad.telegrambot.request.UploadStickerFile
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
@@ -105,15 +107,20 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
             bot.executeAsync(SendMessageWithAction(chatId, messageSource["photo.cant.be.processed"], action))
             return
         }
-        withTempFile(resized) {
-            if (entity.normalPackCreated) {
-                stickerPackManagementService.static().addStickerToPack(bot, chatId, resized, entity, emoji)
-                stickerPackMessagesSender.static().sendSuccessAdd(bot, chatId, messageSource, messageId, entity, action)
-            } else {
-                stickerPackManagementService.static().createNewPack(bot, chatId, resized, entity, emoji)
-                stickerDao.createSet(chatId, StickerPackType.NORMAL, entity.normalPackName)
-                stickerPackMessagesSender.static().sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
-            }
+        val fileResponse = withTempFile(resized) {
+            bot.executeAsync(UploadStickerFile(chatId, it, Sticker.Format.Static))
+        }
+        if (!fileResponse.isOk) {
+            bot.executeAsync(SendMessageWithAction(chatId, messageSource["photo.cant.be.processed"], action))
+            return
+        }
+        if (entity.normalPackCreated) {
+            stickerPackManagementService.static().addStickerToPack(bot, chatId, fileResponse.file().fileId(), entity, emoji)
+            stickerPackMessagesSender.static().sendSuccessAdd(bot, chatId, messageSource, messageId, entity, action)
+        } else {
+            stickerPackManagementService.static().createNewPack(bot, chatId, fileResponse.file().fileId(), entity, emoji)
+            stickerDao.createSet(chatId, StickerPackType.NORMAL, entity.normalPackName)
+            stickerPackMessagesSender.static().sendSuccessCreated(bot, chatId, messageSource, messageId, entity, action)
         }
     }
 

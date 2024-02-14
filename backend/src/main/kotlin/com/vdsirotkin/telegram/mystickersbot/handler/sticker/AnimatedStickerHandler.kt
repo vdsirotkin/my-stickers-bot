@@ -1,7 +1,9 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.Sticker
 import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.request.UploadStickerFile
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
@@ -45,15 +47,14 @@ class AnimatedStickerHandler(
             return@mdcMono
         }
         val stickerFile = fileHelper.downloadFile(bot, sticker.fileId())
+        val fileResponse = optimizeIfNecessary(stickerFile) {
+            bot.executeAsync(UploadStickerFile(chatId, it, Sticker.Format.animated))
+        }
         if (userEntity.animatedPackCreated) {
-            optimizeIfNecessary(stickerFile) {
-                stickerPackManagementService.animated().addStickerToPack(bot, chatId, userEntity, sticker, it)
-            }
+            stickerPackManagementService.animated().addStickerToPack(bot, chatId, fileResponse.file().fileId(), userEntity, sticker.emoji())
             stickerPackMessagesSender.animated().sendSuccessAdd(bot, chatId, update.message().messageId(), messageSource, userEntity, action)
         } else {
-            optimizeIfNecessary(stickerFile) {
-                stickerPackManagementService.animated().createNewPack(bot, chatId, userEntity, sticker, it)
-            }
+            stickerPackManagementService.animated().createNewPack(bot, chatId, fileResponse.file().fileId(), userEntity, sticker.emoji())
             stickerDao.createSet(chatId, StickerPackType.ANIMATED, userEntity.animatedPackName)
             stickerPackMessagesSender.animated().sendSuccessCreated(bot, chatId, update.message().messageId(), messageSource, userEntity, action)
         }
@@ -67,11 +68,11 @@ class AnimatedStickerHandler(
     override val action: String
         get() = "ANIMATED_STICKER"
 
-    private suspend fun optimizeIfNecessary(originalFile: File, block: suspend (File) -> Unit) {
-        withTempFile(originalFile) {
+    private suspend fun <T> optimizeIfNecessary(originalFile: File, block: suspend (File) -> T): T {
+        return withTempFile(originalFile) {
             // step one - try naive way (handles most of the cases actually)
-            val success = kotlin.runCatching { block(originalFile) }.isSuccess
-            if (success) return@withTempFile
+            val result = runCatching { block(originalFile) }
+            if (result.isSuccess) return@withTempFile result.getOrThrow()
             logDebug("First step for animated sticker failed! Trying second way")
 
             // step two - optimize with lottie (python, bruh)
