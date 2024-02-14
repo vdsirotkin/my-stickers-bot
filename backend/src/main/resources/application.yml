@@ -28,11 +28,8 @@ management:
 logging:
   level:
     com.vdsirotkin: debug
-    com.vdsirotkin.telegram.mystickersbot.util.security.CustomRequestCache: error
     io.github.biezhi: debug
 
-vaadin:
-  heartbeatInterval: 5
 dashbot:
   enabled: false
   api-key: ${DASHBOT_API_KEY}

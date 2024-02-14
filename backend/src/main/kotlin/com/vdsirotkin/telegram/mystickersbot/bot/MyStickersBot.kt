@@ -1,9 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.bot
 
-import com.pengrad.telegrambot.Callback
-import com.pengrad.telegrambot.TelegramBot
-import com.pengrad.telegrambot.TelegramException
-import com.pengrad.telegrambot.UpdatesListener
+import com.pengrad.telegrambot.*
 import com.pengrad.telegrambot.model.Chat
 import com.pengrad.telegrambot.model.Sticker
 import com.pengrad.telegrambot.model.Update
@@ -205,11 +202,11 @@ class MyStickersBot(
         }
     }
 
-    override fun <T : BaseRequest<T, R>?, R : BaseResponse?> execute(request: T, callback: Callback<T, R>?) {
+    override fun <T : BaseRequest<T, R>?, R : BaseResponse?> execute(request: T, callback: Callback<T, R>?): Cancellable {
         if (request is SendMessageWithAction) {
             metricsService.trackOutgoing(request.parameters["chat_id"]?.toString()?.toLong() ?: 0, request.action, request.parameters["text"]?.toString().orEmpty())
         }
-        super.execute(request, callback)
+        return super.execute(request, callback)
     }
 
     companion object : Loggable

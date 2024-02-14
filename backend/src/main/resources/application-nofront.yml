@@ -1,3 +1,0 @@
-spring:
-  autoconfigure:
-    exclude: com.vaadin.flow.spring.SpringBootAutoConfiguration
