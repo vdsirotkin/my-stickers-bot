@@ -83,6 +83,7 @@ class MyStickersBot(
             update.message()?.photo() != null -> handlerFactory.photoHandler
             update.message()?.animation() != null -> handlerFactory.animationHandler
             update.message()?.document() != null -> handlerFactory.documentHandler
+            update.message()?.entities()?.any { it.customEmojiId() != null } == true -> handlerFactory.customEmojiHandler
             else -> handlerFactory.unknownMessageHandler
         }
 

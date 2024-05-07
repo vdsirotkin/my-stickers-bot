@@ -8,7 +8,14 @@ import org.springframework.data.mongodb.config.MongoConfigurationSupport
 class MongoConfig : MongoConfigurationSupport() {
 
     override fun getInitialEntitySet(): MutableSet<Class<*>> {
-        return mutableSetOf(UserEntity.VideoStickerSet::class.java, UserEntity.AnimatedStickerSet::class.java, UserEntity.StaticStickerSet::class.java)
+        return mutableSetOf(
+            UserEntity.VideoStickerSet::class.java,
+            UserEntity.AnimatedStickerSet::class.java,
+            UserEntity.StaticStickerSet::class.java,
+            UserEntity.AnimatedEmojiSet::class.java,
+            UserEntity.StaticEmojiSet::class.java,
+            UserEntity.VideoEmojiSet::class.java,
+        )
     }
 
     override fun getDatabaseName(): String {

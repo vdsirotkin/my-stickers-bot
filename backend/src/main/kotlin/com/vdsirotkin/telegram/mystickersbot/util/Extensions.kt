@@ -92,7 +92,7 @@ suspend fun <T : BaseRequest<T, R>, R : BaseResponse> TelegramBot.executeAsync(m
             execute(method, object : Callback<T, R> {
                 override fun onResponse(request: T?, response: R) {
                     if (!response.isOk || LOG_RESPONSES) {
-                        loggerFor("responseLogger").error("Request: $request\nResponse: $response")
+                        loggerFor("responseLogger").error("Request: ${request?.parameters.toString()}\nResponse: $response")
                     }
                     cont.resume(response)
                 }

@@ -3,6 +3,7 @@ package com.vdsirotkin.telegram.mystickersbot.handler
 import com.vdsirotkin.telegram.mystickersbot.handler.common.DeleteHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.common.StartHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.common.UnknownMessageHandler
+import com.vdsirotkin.telegram.mystickersbot.handler.emojis.CustomEmojiHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.language.LanguageHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.language.SetLanguageHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.photo.DocumentHandler
@@ -57,6 +58,9 @@ abstract class HandlerFactory(
 
     @get:Lookup
     abstract val animationHandler: AnimationHandler
+
+    @get:Lookup
+    abstract val customEmojiHandler: CustomEmojiHandler
 
     fun newHandler(kClass: KClass<out BaseHandler>): BaseHandler = applicationContext.getBean(kClass.java)
 

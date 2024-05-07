@@ -24,4 +24,20 @@ class PackNameProvider(
             } else "vid_stckr_${chatId}_${index}_by_${props.username}"
         }
     }
+
+    fun generateEmojiPackName(packType: StickerPackType, chatId: Long, index: Int = 0): String {
+        return when (packType) {
+            StickerPackType.NORMAL -> if (index == 0) {
+                "def_emoji_${chatId}_by_${props.username}"
+            } else "def_emoji_${chatId}_${index}_by_${props.username}"
+
+            StickerPackType.ANIMATED -> if (index == 0) {
+                "anim_emoji_${chatId}_by_${props.username}"
+            } else "anim_emoji_${chatId}_${index}_by_${props.username}"
+
+            StickerPackType.VIDEO -> if (index == 0) {
+                "vid_emoji_${chatId}_by_${props.username}"
+            } else "vid_emoji_${chatId}_${index}_by_${props.username}"
+        }
+    }
 }

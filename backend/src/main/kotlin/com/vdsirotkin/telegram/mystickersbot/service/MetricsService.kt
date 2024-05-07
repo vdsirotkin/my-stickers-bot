@@ -3,7 +3,7 @@ package com.vdsirotkin.telegram.mystickersbot.service
 import com.vdsirotkin.dashbot.client.TrackClient
 import com.vdsirotkin.dashbot.dto.TrackRequest
 import com.vdsirotkin.dashbot.dto.track.Intent
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -37,7 +37,8 @@ class MetricsService(
     @PostConstruct
     fun init()  {
         if (!enabled) return
-        GlobalScope.launch(context = executor.asCoroutineDispatcher()) {
+        val scope = CoroutineScope(executor.asCoroutineDispatcher())
+        scope.launch {
             while (this.isActive) {
                 val request = incomingQueue.take()
                 try {
@@ -48,7 +49,7 @@ class MetricsService(
                 }
             }
         }
-        GlobalScope.launch(context = executor.asCoroutineDispatcher()) {
+        scope.launch(context = executor.asCoroutineDispatcher()) {
             while (this.isActive) {
                 val request = outgoingQueue.take()
                 try {

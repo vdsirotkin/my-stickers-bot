@@ -10,7 +10,6 @@ import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
 import com.vdsirotkin.telegram.mystickersbot.dto.packType
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
-import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
@@ -27,7 +26,6 @@ import reactor.core.publisher.Mono
 class VideoStickerHandler(
     override val stickerDao: StickerDAO,
     override val messageSource: MessageSource,
-    private val fileHelper: FileHelper,
     private val stickerPackManagementService: StickerPackManagementService,
     private val stickerPackMessagesSender: StickerPackMessagesSender,
     private val packNameProvider: PackNameProvider,
@@ -48,8 +46,8 @@ class VideoStickerHandler(
         } else {
             val resultEntity = updateVideoPackNameIfNecessary(entity)
             stickerPackManagementService.video().createNewPack(bot, chatId, sticker.fileId(), resultEntity, sticker.emoji())
-            stickerPackMessagesSender.video().sendSuccessCreated(bot, chatId, messageSource, update.message().messageId(), resultEntity, action)
             stickerDao.createSet(chatId, StickerPackType.VIDEO, entity.videoPackName)
+            stickerPackMessagesSender.video().sendSuccessCreated(bot, chatId, messageSource, update.message().messageId(), resultEntity, action)
         }
         stickerDao.saveSticker(chatId, StickerMeta(fileId, sticker.fileUniqueId(), sticker.emoji(), sticker.packType()), createdStickerUniqueFileId = "")
     }.thenReturn(this)

@@ -87,6 +87,24 @@ class StickerDAO(
             .await()
     }
 
+    suspend fun createEmojiSet(chatId: Long, packType: StickerPackType, packName: String) {
+        template.findById<UserEntity>(chatId.toString())
+            .doOnNext {
+                // new
+                if (it.emojiSets.find { it.packName == packName } == null) {
+                    val set = when (packType) {
+                        StickerPackType.NORMAL -> StaticEmojiSet(packName)
+                        StickerPackType.ANIMATED -> AnimatedEmojiSet(packName)
+                        StickerPackType.VIDEO -> VideoEmojiSet(packName)
+                    }
+                    it.emojiSets.add(set)
+                }
+            }
+            .flatMap { template.save(it) }
+            .retryOnOptimisticLock()
+            .await()
+    }
+
     suspend fun countUsers(): Int {
         return template.count(Query(), UserEntity::class.java).await()?.toInt() ?: 0
     }
