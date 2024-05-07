@@ -61,13 +61,15 @@ class EmojiPackManagementService(
             stickerFileId: String,
             emoji: String? = null,
         ) {
-            bot.executeAsync(CreateNewStickerSet(
-                chatId,
-                packName,
-                "Your stickers - @${props.username}",
-                arrayOf(InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))),
-                Sticker.Format.animated
-            ))
+            bot.executeAsync(
+                CreateNewStickerSet(
+                    chatId,
+                    packName,
+                    "Your stickers - @${props.username}",
+                    arrayOf(InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))),
+                    Sticker.Format.animated
+                ).stickerType(Sticker.Type.custom_emoji)
+            )
         }
     }
 
@@ -93,7 +95,7 @@ class EmojiPackManagementService(
                 "Your stickers - @${props.username}",
                 arrayOf(InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))),
                 Sticker.Format.video,
-            ))
+            ).stickerType(Sticker.Type.custom_emoji))
         }
     }
 }
