@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.3</version>
+        <version>3.2.3</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.vdsirotkin.telegram</groupId>
@@ -15,10 +15,10 @@
     <description>My stickers bot</description>
 
     <properties>
-        <java.version>11</java.version>
-        <kotlin.version>1.8.10</kotlin.version>
-        <kotlin-coroutines.version>1.6.4</kotlin-coroutines.version>
-        <okhttp3.version>4.10.0</okhttp3.version>
+        <java.version>21</java.version>
+        <kotlin.version>1.9.21</kotlin.version>
+        <kotlin-coroutines.version>1.7.3</kotlin-coroutines.version>
+        <resilience4j.version>2.2.0</resilience4j.version>
     </properties>
 
     <repositories>
@@ -40,17 +40,17 @@
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-kotlin</artifactId>
-            <version>1.3.1</version>
+            <version>${resilience4j.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-retry</artifactId>
-            <version>1.3.1</version>
-        </dependency
-        ><dependency>
+            <version>${resilience4j.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-ratelimiter</artifactId>
-            <version>1.3.1</version>
+            <version>${resilience4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -83,12 +83,12 @@
         <dependency>
             <groupId>com.github.fonimus</groupId>
             <artifactId>ssh-shell-spring-boot-starter</artifactId>
-            <version>2.0.3</version>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.github.pengrad</groupId>
             <artifactId>java-telegram-bot-api</artifactId>
-            <version>7.0.1</version>
+            <version>8.3.0</version>
         </dependency>
         <dependency>
             <groupId>com.github.sokomishalov</groupId>
@@ -100,12 +100,6 @@
             <artifactId>webp-io</artifactId>
             <version>0.0.6</version>
         </dependency>
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>6.4</version>
-        </dependency>
-
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
@@ -134,7 +128,8 @@
         </dependency>
         <dependency>
             <groupId>de.flapdoodle.embed</groupId>
-            <artifactId>de.flapdoodle.embed.mongo</artifactId>
+            <artifactId>de.flapdoodle.embed.mongo.spring30x</artifactId>
+            <version>4.11.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -181,7 +176,7 @@
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.version}</version>
                 <configuration>
-                    <jvmTarget>1.8</jvmTarget>
+                    <jvmTarget>21</jvmTarget>
                     <compilerPlugins>
                         <plugin>spring</plugin>
                     </compilerPlugins>
