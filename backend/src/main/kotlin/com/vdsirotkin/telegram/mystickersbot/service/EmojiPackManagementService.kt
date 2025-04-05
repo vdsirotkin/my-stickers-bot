@@ -25,7 +25,7 @@ class EmojiPackManagementService(
                                      stickerFileId: String,
                                      entity: UserEntity,
                                      emoji: String? = null) {
-            bot.executeAsync(AddStickerToSet(chatId, entity.staticEmojiSetName, InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))))
+            bot.executeAsync(AddStickerToSet(chatId, entity.staticEmojiSetName, InputSticker(stickerFileId, Sticker.Format.Static, arrayOf(emoji ?: "🙂"))))
         }
 
         suspend fun createNewPack(
@@ -38,8 +38,7 @@ class EmojiPackManagementService(
             bot.executeAsync(CreateNewStickerSet(chatId,
                 packName,
                 "Your emojis - @${props.username}",
-                arrayOf(InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))),
-                Sticker.Format.Static,
+                arrayOf(InputSticker(stickerFileId, Sticker.Format.Static, arrayOf(emoji ?: "🙂"))),
             ).stickerType(Sticker.Type.custom_emoji))
         }
     }
@@ -51,7 +50,7 @@ class EmojiPackManagementService(
                                      stickerFileId: String,
                                      entity: UserEntity,
                                      emoji: String? = null) {
-            bot.executeAsync(AddStickerToSet(chatId, entity.animatedEmojiSetName, InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))))
+            bot.executeAsync(AddStickerToSet(chatId, entity.animatedEmojiSetName, InputSticker(stickerFileId, Sticker.Format.animated, arrayOf(emoji ?: "🙂"))))
         }
 
         suspend fun createNewPack(
@@ -66,8 +65,7 @@ class EmojiPackManagementService(
                     chatId,
                     packName,
                     "Your stickers - @${props.username}",
-                    arrayOf(InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))),
-                    Sticker.Format.animated
+                    arrayOf(InputSticker(stickerFileId, Sticker.Format.animated, arrayOf(emoji ?: "🙂"))),
                 ).stickerType(Sticker.Type.custom_emoji)
             )
         }
@@ -80,7 +78,7 @@ class EmojiPackManagementService(
                                      stickerFileId: String,
                                      entity: UserEntity,
                                      emoji: String? = null) {
-            bot.executeAsync(AddStickerToSet(chatId, entity.videoEmojiSetName, InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))))
+            bot.executeAsync(AddStickerToSet(chatId, entity.videoEmojiSetName, InputSticker(stickerFileId, Sticker.Format.video, arrayOf(emoji ?: "🙂"))))
         }
 
         suspend fun createNewPack(
@@ -93,8 +91,7 @@ class EmojiPackManagementService(
             bot.executeAsync(CreateNewStickerSet(chatId,
                 packName,
                 "Your stickers - @${props.username}",
-                arrayOf(InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))),
-                Sticker.Format.video,
+                arrayOf(InputSticker(stickerFileId, Sticker.Format.video, arrayOf(emoji ?: "🙂"))),
             ).stickerType(Sticker.Type.custom_emoji))
         }
     }

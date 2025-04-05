@@ -13,7 +13,6 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
-import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
@@ -26,7 +25,6 @@ import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.MessageSource
 import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 
 @Service
 @Scope(BeanDefinition.SCOPE_PROTOTYPE)
@@ -137,7 +135,7 @@ class AnimationHandler(
             get() = data == State.Finished
     }
 
-    override fun handleInternal(bot: TelegramBot, update: Update, messageSource: MessageSourceWrapper, userEntity: UserEntity): Mono<BaseHandler> = statefulMdcMono {
+    override suspend fun handleInternal(bot: TelegramBot, update: Update, messageSource: MessageSourceWrapper, userEntity: UserEntity) {
         stateMachine = stateMachine.with { initialState(state.data) }
         stateMachine.transition(Event.MessageReceivedEvent(bot, update, messageSource, userEntity))
         state = state.copy(data = stateMachine.state)

@@ -11,7 +11,6 @@ import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
 import com.vdsirotkin.telegram.mystickersbot.exception.PngNotCreatedException
-import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.photo.BasePhotoHandler.PhotoHandlerData
@@ -23,7 +22,6 @@ import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
 import com.vdsirotkin.telegram.mystickersbot.service.image.ImageResizer
 import com.vdsirotkin.telegram.mystickersbot.util.*
 import com.vdurmont.emoji.EmojiParser
-import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
 
 abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandlerData> {
@@ -40,12 +38,12 @@ abstract class BasePhotoHandler : LocalizedHandler, StatefulHandler<PhotoHandler
 
     private var photoHandlerState = PhotoHandlerState(false, PhotoHandlerData(NEW))
 
-    override fun handleInternal(
+    override suspend fun handleInternal(
             bot: TelegramBot,
             update: Update,
             messageSource: MessageSourceWrapper,
             userEntity: UserEntity
-    ): Mono<BaseHandler> = statefulMdcMono {
+    ) {
         runStateMachine(bot, update, messageSource, userEntity)
     }
 

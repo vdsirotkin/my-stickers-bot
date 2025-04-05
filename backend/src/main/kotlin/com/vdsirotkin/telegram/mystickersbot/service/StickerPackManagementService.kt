@@ -26,7 +26,7 @@ class StickerPackManagementService(
                                      stickerFileId: String,
                                      entity: UserEntity,
                                      emoji: String? = null) {
-            bot.executeAsync(AddStickerToSet(chatId, entity.normalPackName, InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))))
+            bot.executeAsync(AddStickerToSet(chatId, entity.normalPackName, InputSticker(stickerFileId, Sticker.Format.Static, arrayOf(emoji ?: "🙂"))))
         }
 
         suspend fun createNewPack(bot: TelegramBot,
@@ -37,8 +37,7 @@ class StickerPackManagementService(
             bot.executeAsync(CreateNewStickerSet(chatId,
                 entity.normalPackName,
                 "Your stickers - @${props.username}",
-                arrayOf(InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))),
-                Sticker.Format.Static,
+                arrayOf(InputSticker(stickerFileId, Sticker.Format.Static, arrayOf(emoji ?: "🙂"))),
             ))
         }
     }
@@ -50,7 +49,7 @@ class StickerPackManagementService(
                                      stickerFileId: String,
                                      entity: UserEntity,
                                      emoji: String? = null) {
-            bot.executeAsync(AddStickerToSet(chatId, entity.animatedPackName, InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))))
+            bot.executeAsync(AddStickerToSet(chatId, entity.animatedPackName, InputSticker(stickerFileId, Sticker.Format.animated, arrayOf(emoji ?: "🙂"))))
         }
 
         suspend fun createNewPack(bot: TelegramBot,
@@ -62,8 +61,7 @@ class StickerPackManagementService(
                 chatId,
                 entity.animatedPackName,
                 "Your stickers - @${props.username}",
-                arrayOf(InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))),
-                Sticker.Format.animated
+                arrayOf(InputSticker(stickerFileId, Sticker.Format.animated, arrayOf(emoji ?: "🙂"))),
             ))
         }
     }
@@ -75,7 +73,7 @@ class StickerPackManagementService(
                                      stickerFileId: String,
                                      entity: UserEntity,
                                      emoji: String? = null) {
-            bot.executeAsync(AddStickerToSet(chatId, entity.videoPackName, InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))))
+            bot.executeAsync(AddStickerToSet(chatId, entity.videoPackName, InputSticker(stickerFileId, Sticker.Format.video, arrayOf(emoji ?: "🙂"))))
         }
 
         suspend fun createNewPack(bot: TelegramBot,
@@ -87,8 +85,7 @@ class StickerPackManagementService(
             bot.executeAsync(CreateNewStickerSet(chatId,
                 entity.videoPackName,
                 "Your stickers - @${props.username}",
-                arrayOf(InputSticker(stickerFileId, arrayOf(emoji ?: "🙂"))),
-                Sticker.Format.video,
+                arrayOf(InputSticker(stickerFileId, Sticker.Format.video, arrayOf(emoji ?: "🙂"))),
             ))
         }
     }

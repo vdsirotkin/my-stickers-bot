@@ -3,6 +3,7 @@
 package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.pengrad.telegrambot.Callback
+import com.pengrad.telegrambot.Cancellable
 import com.pengrad.telegrambot.model.*
 import com.pengrad.telegrambot.request.AddStickerToSet
 import com.pengrad.telegrambot.request.CreateNewStickerSet
@@ -15,7 +16,6 @@ import com.vdsirotkin.telegram.mystickersbot.bot.BotConfigProps
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
-import com.vdsirotkin.telegram.mystickersbot.fillMdc
 import com.vdsirotkin.telegram.mystickersbot.service.FileHelper
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackManagementService
 import com.vdsirotkin.telegram.mystickersbot.service.StickerPackMessagesSender
@@ -32,7 +32,6 @@ import org.junit.jupiter.api.Test
 import org.junit.platform.commons.util.ReflectionUtils
 import org.springframework.context.MessageSource
 import ru.sokomishalov.commons.core.common.unit
-import ru.sokomishalov.commons.core.reactor.awaitStrict
 import java.nio.file.Files
 
 const val CHAT_ID = 123L
@@ -66,17 +65,31 @@ class NormalStickerHandlerTest {
         } answers {
             val clazz = firstArg<Any>()
             when (clazz) {
-                is SendMessage -> (secondArg() as Callback<SendMessage, SendResponse>).onResponse(null, ReflectionUtils.newInstance(SendResponse::class.java))
+                is SendMessage -> {
+                    (secondArg() as Callback<SendMessage, SendResponse>).onResponse(null, ReflectionUtils.newInstance(SendResponse::class.java))
+                    Cancellable { }
+                }
                 is GetFile -> {
-                    (secondArg() as Callback<GetFile, GetFileResponse>).onResponse(null, mockk<GetFileResponse>().apply {
-                        every { file() } returns mockk<File>().apply {
+                    (secondArg() as Callback<GetFile, GetFileResponse>).onResponse(null, mockk<GetFileResponse> {
+                        every { file() } returns mockk<File> {
                             every { fileId() } returns "792632f6-230b-4b1b-8b5d-087ffd785482"
                         }
                         every { isOk } returns true
                     })
+                    Cancellable { }
                 }
-                is CreateNewStickerSet -> (secondArg() as Callback<CreateNewStickerSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java))
-                is AddStickerToSet -> (secondArg() as Callback<AddStickerToSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java))
+                is CreateNewStickerSet -> {
+                    (secondArg() as Callback<CreateNewStickerSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java))
+                    Cancellable { }
+                }
+                is AddStickerToSet -> {
+                    (secondArg() as Callback<AddStickerToSet, BaseResponse>).onResponse(null, ReflectionUtils.newInstance(BaseResponse::class.java))
+                    Cancellable { }
+                }
+
+                else -> {
+                    Cancellable { }
+                }
             }
         }
     }
@@ -91,9 +104,9 @@ class NormalStickerHandlerTest {
     @DisplayName("test scenario with normal sticker")
     fun testScenarioWithNormalSticker() = runBlocking {
         val update = buildStickerUpdate()
-        normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
+        normalStickerHandler.handle(bot, update)
 
-        verify(exactly = 3) { bot.execute(any<CreateNewStickerSet>(), any()) }
+        verify(exactly = 2) { bot.execute(any<CreateNewStickerSet>(), any()) }
     }.unit()
 
     @Test
@@ -102,9 +115,9 @@ class NormalStickerHandlerTest {
         setupDao(true)
 
         val update = buildStickerUpdate()
-        normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
+        normalStickerHandler.handle(bot, update)
 
-        verify(exactly = 3) { bot.execute(any<SendMessage>(), any()) }
+        verify(exactly = 2) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     @Test
@@ -113,7 +126,7 @@ class NormalStickerHandlerTest {
         setupDao(stickerExists = true)
 
         val update = buildStickerUpdate()
-        normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
+        normalStickerHandler.handle(bot, update)
 
         verify(exactly = 1) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
@@ -122,26 +135,26 @@ class NormalStickerHandlerTest {
     @DisplayName("test scenario with no-emoji sticker")
     fun testScenarioWithNoEmojiSticker() = runBlocking {
         val update = buildStickerUpdate(null)
-        val firstResult = normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
+        normalStickerHandler.handle(bot, update)
 
         val update2 = buildTextUpdate()
-        firstResult.handle(bot, update2).fillMdc(CHAT_ID).awaitStrict()
+        normalStickerHandler.handle(bot, update2)
 
-        verify(exactly = 4) { bot.execute(any<SendMessage>(), any()) }
+        verify(exactly = 3) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     @Test
     @DisplayName("test scenario with no-emoji sticker and broken text")
     fun testScenarioWithNoEmojiStickerAndBrokenText() = runBlocking {
         val update = buildStickerUpdate(null)
-        normalStickerHandler.handle(bot, update).fillMdc(CHAT_ID).awaitStrict()
+        normalStickerHandler.handle(bot, update)
 
         val update2 = buildTextUpdate("asdfasdf")
-        normalStickerHandler.handle(bot, update2).fillMdc(CHAT_ID).awaitStrict()
+        normalStickerHandler.handle(bot, update2)
         val update3 = buildTextUpdate()
-        normalStickerHandler.handle(bot, update3).fillMdc(CHAT_ID).awaitStrict()
+        normalStickerHandler.handle(bot, update3)
 
-        verify(exactly = 5) { bot.execute(any<SendMessage>(), any()) }
+        verify(exactly = 4) { bot.execute(any<SendMessage>(), any()) }
     }.unit()
 
     private fun buildTextUpdate(text: String? = "😀"): Update {
@@ -188,5 +201,4 @@ class NormalStickerHandlerTest {
             stickerSets.add(UserEntity.StaticStickerSet("test"))
         }
     }
-
 }

@@ -7,9 +7,7 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.db.entity.locale
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
 import com.vdsirotkin.telegram.mystickersbot.util.determineChatId
-import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
 import org.springframework.context.MessageSource
-import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.loggerFor
 
 interface LocalizedHandler : BaseHandler {
@@ -17,11 +15,12 @@ interface LocalizedHandler : BaseHandler {
     val stickerDao: StickerDAO
     val messageSource: MessageSource
 
-    override fun handle(bot: TelegramBot, update: Update): Mono<BaseHandler> = mdcMono {
+    override suspend fun handle(bot: TelegramBot, update: Update) {
         loggerFor(LocalizedHandler::class.java).info("Executing ${this@LocalizedHandler.javaClass.name}")
-        stickerDao.getUserEntity(determineChatId(update))
-    }.flatMap { handleInternal(bot, update, MessageSourceWrapper(messageSource, it.locale), it) }
+        val userEntity = stickerDao.getUserEntity(determineChatId(update))
+        handleInternal(bot, update, MessageSourceWrapper(messageSource, userEntity.locale), userEntity)
+    }
 
-    fun handleInternal(bot: TelegramBot, update: Update, messageSource: MessageSourceWrapper,
-                       userEntity: UserEntity): Mono<BaseHandler>
+    suspend fun handleInternal(bot: TelegramBot, update: Update, messageSource: MessageSourceWrapper,
+                      userEntity: UserEntity)
 }

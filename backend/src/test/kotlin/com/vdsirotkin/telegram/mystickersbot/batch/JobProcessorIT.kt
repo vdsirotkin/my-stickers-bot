@@ -1,6 +1,7 @@
 package com.vdsirotkin.telegram.mystickersbot.batch
 
 import com.pengrad.telegrambot.Callback
+import com.pengrad.telegrambot.Cancellable
 import com.pengrad.telegrambot.request.SendMessage
 import com.pengrad.telegrambot.response.SendResponse
 import com.vdsirotkin.telegram.mystickersbot.bot.MyStickersBot
@@ -67,6 +68,7 @@ class JobProcessorIT(
                 } else {
                     (secondArg() as Callback<SendMessage, SendResponse>).onResponse(null, ReflectionUtils.newInstance(SendResponse::class.java))
                 }
+                Cancellable { }
             }
         }
         coEvery { stickerDAO.getUserEntity(any<Long>()) } returns UserEntity("", "", "")

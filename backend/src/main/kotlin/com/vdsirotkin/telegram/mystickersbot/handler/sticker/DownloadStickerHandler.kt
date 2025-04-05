@@ -2,6 +2,7 @@ package com.vdsirotkin.telegram.mystickersbot.handler.sticker
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.model.request.ReplyParameters
 import com.pengrad.telegrambot.request.GetFile
 import com.pengrad.telegrambot.request.SendDocument
 import com.pengrad.telegrambot.request.SendPhoto
@@ -11,7 +12,6 @@ import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
 import com.vdsirotkin.telegram.mystickersbot.dto.packType
-import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.sticker.DownloadStickerHandler.State
@@ -24,7 +24,6 @@ import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.MessageSource
 import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 import java.io.File
 import java.nio.file.Files
 
@@ -59,7 +58,13 @@ class DownloadStickerHandler(
         state<State.New> {
             on<ReceivedMessageEvent> {
                 val (bot, update, messageSource) = it
-                bot.executeAsync(SendMessageWithAction(update.message().chat().id(), messageSource["send.sticker.download"], action))
+                bot.executeAsync(
+                    SendMessageWithAction(
+                        update.message().chat().id(),
+                        messageSource["send.sticker.download"],
+                        action
+                    )
+                )
                 transitionTo(State.WaitingForSticker)
             }
         }
@@ -68,18 +73,41 @@ class DownloadStickerHandler(
                 val (bot, update, messageSource) = it
                 val sticker = update.message().sticker()
                 if (sticker == null) {
-                    bot.executeAsync(SendMessageWithAction(update.message().chat().id(), messageSource["not.sticker.download"], action).replyToMessageId(update.message().messageId()))
+                    bot.executeAsync(
+                        SendMessageWithAction(
+                            update.message().chat().id(),
+                            messageSource["not.sticker.download"],
+                            action
+                        ).replyParameters(
+                            ReplyParameters(update.message().messageId())
+                        )
+                    )
                     return@on dontTransition()
                 }
-                val pngFile = preparePngFile(bot, StickerMeta(sticker.fileId(), sticker.fileUniqueId(), emoji = null, sticker.packType()))
+                val pngFile = preparePngFile(
+                    bot,
+                    StickerMeta(sticker.fileId(), sticker.fileUniqueId(), emoji = null, sticker.packType())
+                )
                 withTempFile(pngFile) { file ->
-                    bot.executeAsync(SendDocument(update.message().chat().id(), file).replyToMessageId(update.message().messageId()))
-                    bot.executeAsync(SendPhoto(update.message().chat().id(), file).replyToMessageId(update.message().messageId()))
+                    bot.executeAsync(
+                        SendDocument(update.message().chat().id(), file).replyParameters(
+                            ReplyParameters(
+                                update.message().messageId()
+                            )
+                        )
+                    )
+                    bot.executeAsync(
+                        SendPhoto(update.message().chat().id(), file).replyParameters(
+                            ReplyParameters(
+                                update.message().messageId()
+                            )
+                        )
+                    )
                 }
                 transitionTo(State.Finished)
             }
         }
-        state<State.Finished> {  }
+        state<State.Finished> { }
     }
 
     private suspend fun preparePngFile(
@@ -94,7 +122,12 @@ class DownloadStickerHandler(
         }
     }
 
-    override fun handleInternal(bot: TelegramBot, update: Update, messageSource: MessageSourceWrapper, userEntity: UserEntity): Mono<BaseHandler> = statefulMdcMono {
+    override suspend fun handleInternal(
+        bot: TelegramBot,
+        update: Update,
+        messageSource: MessageSourceWrapper,
+        userEntity: UserEntity
+    ) {
         stateMachine = stateMachine.with { initialState(state.data) }
         stateMachine.transition(ReceivedMessageEvent(bot, update, messageSource))
         state = state.copy(data = stateMachine.state)

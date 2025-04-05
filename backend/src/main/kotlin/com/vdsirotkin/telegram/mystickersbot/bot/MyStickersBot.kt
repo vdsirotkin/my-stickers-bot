@@ -9,7 +9,6 @@ import com.pengrad.telegrambot.request.SendMessage
 import com.pengrad.telegrambot.response.BaseResponse
 import com.vdsirotkin.telegram.mystickersbot.dto.HandlerState
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
-import com.vdsirotkin.telegram.mystickersbot.exception.HandlerException
 import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.HandlerFactory
 import com.vdsirotkin.telegram.mystickersbot.handler.StatefulHandler
@@ -18,15 +17,13 @@ import com.vdsirotkin.telegram.mystickersbot.service.MetricsService
 import com.vdsirotkin.telegram.mystickersbot.util.*
 import io.github.resilience4j.ratelimiter.RateLimiter
 import io.github.resilience4j.retry.Retry
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.coroutines.slf4j.MDCContext
-import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
-import reactor.kotlin.core.publisher.toMono
 import ru.sokomishalov.commons.core.log.Loggable
 import java.util.*
+import java.util.concurrent.Executors
 import javax.annotation.PostConstruct
 import kotlin.reflect.KClass
 
@@ -41,6 +38,7 @@ class MyStickersBot(
 ) : TelegramBot(props.token) {
 
     private val handlerStateMap: MutableMap<Long, HandlerState<*>> = mutableMapOf()
+    private val scope = CoroutineScope(Executors.newVirtualThreadPerTaskExecutor().asCoroutineDispatcher() + SupervisorJob())
 
     @PostConstruct
     fun init() {
@@ -89,37 +87,23 @@ class MyStickersBot(
 
         metricsService.trackIncoming(chatId, handler.action)
 
-        handler.toMono()
-            .flatMap { it.handle(this, update) }
-            .doOnNext {
-                if (it is StatefulHandler<*>) {
-                    if (it.getState().finished) {
-                        handlerStateMap.remove(chatId)
-                    } else {
-                        handlerStateMap[chatId] = it.getState()
-                    }
+        scope.launch(MDCContext(contextMap = mapOf(MDC_CALL_ID to UUID.randomUUID().toString(), MDC_USER_ID to chatId.toString()))) {
+            try {
+                handler.handle(this@MyStickersBot, update)
+            } catch (e: Exception) {
+                logException(e)
+                handlerStateMap.remove(chatId)
+                return@launch
+            }
+
+            if (handler is StatefulHandler<*>) {
+                if (handler.getState().finished) {
+                    handlerStateMap.remove(chatId)
+                } else {
+                    handlerStateMap[chatId] = handler.getState()
                 }
             }
-            .doOnEach {
-                if (!it.isOnError) return@doOnEach
-
-                it.contextView.resolveMdc()
-                val t = it.throwable!!
-
-                if (t is HandlerException) {
-                    logException(t.parent)
-                    if (t.handler is StatefulHandler<*>) {
-                        handlerStateMap.remove(chatId)
-                    }
-                } else {
-                    logException(t)
-                }
-                sendErrorMessagesAsync(chatId, MDC.get(MDC_CALL_ID))
-                MDC.clear()
-            }.contextWrite {
-                it.put(MDC_CALL_ID, UUID.randomUUID().toString())
-                    .put(MDC_USER_ID, chatId.toString())
-            }.subscribe()
+        }
     }
 
     private fun handleGroup(update: Update) {
@@ -156,13 +140,13 @@ class MyStickersBot(
         if (handlerStateMap.containsKey(chatId)) {
             val state = handlerStateMap.remove(chatId)!!
             val handler = prepareStatefulHandler(state)
-            GlobalScope.launch {
+            scope.launch {
                 handler.cancel(this@MyStickersBot, chatId)
                 val messageSource = messageSourceProvider.getMessageSource(chatId)
                 executeAsync(SendMessageWithAction(chatId, messageSource["cancel.success"], "CANCEL"))
             }
         } else {
-            GlobalScope.launch {
+            scope.launch {
                 val messageSource = messageSourceProvider.getMessageSource(chatId)
                 executeAsync(SendMessageWithAction(chatId, messageSource["cancel.nothing"], "NOTHING_TO_CANCEL"))
             }

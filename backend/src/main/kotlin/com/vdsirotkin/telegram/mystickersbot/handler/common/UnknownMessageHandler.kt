@@ -6,25 +6,22 @@ import com.pengrad.telegrambot.request.AnswerCallbackQuery
 import com.vdsirotkin.telegram.mystickersbot.db.StickerDAO
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.dto.SendMessageWithAction
-import com.vdsirotkin.telegram.mystickersbot.handler.BaseHandler
 import com.vdsirotkin.telegram.mystickersbot.handler.LocalizedHandler
 import com.vdsirotkin.telegram.mystickersbot.util.MessageSourceWrapper
 import com.vdsirotkin.telegram.mystickersbot.util.executeAsync
-import com.vdsirotkin.telegram.mystickersbot.util.mdcMono
 import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 import ru.sokomishalov.commons.core.log.Loggable
 
 @Service
 class UnknownMessageHandler(override val stickerDao: StickerDAO,
                             override val messageSource: MessageSource) : LocalizedHandler {
 
-    override fun handleInternal(
+    override suspend fun handleInternal(
             bot: TelegramBot, update: Update,
             messageSource: MessageSourceWrapper,
             userEntity: UserEntity
-    ): Mono<BaseHandler> = mdcMono {
+    ) {
         when {
             update.message() != null -> {
                 logger.info("Received some spam: ${update.message().text()}")
@@ -37,7 +34,7 @@ class UnknownMessageHandler(override val stickerDao: StickerDAO,
             }
             else -> {}
         }
-    }.thenReturn(this)
+    }
 
     override val action: String
         get() = "UNKNOWN_MESSAGE"

@@ -1,7 +1,6 @@
 package com.vdsirotkin.telegram.mystickersbot.db
 
 import com.pengrad.telegrambot.model.Sticker
-import com.vdsirotkin.telegram.mystickersbot.db.entity.USER_ENTITY_COLLECTION_NAME
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity
 import com.vdsirotkin.telegram.mystickersbot.db.entity.UserEntity.*
 import com.vdsirotkin.telegram.mystickersbot.db.entity.getPackName
@@ -9,10 +8,9 @@ import com.vdsirotkin.telegram.mystickersbot.db.entity.getPackSets
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerMeta
 import com.vdsirotkin.telegram.mystickersbot.dto.StickerPackType
 import com.vdsirotkin.telegram.mystickersbot.dto.packType
-import kotlinx.coroutines.reactive.awaitFirstOrElse
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.dao.DataAccessException
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
-import org.springframework.data.mongodb.core.aggregation.Aggregation
 import org.springframework.data.mongodb.core.findById
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
@@ -30,6 +28,11 @@ class StickerDAO(
     private val template: ReactiveMongoTemplate,
 ) {
 
+    suspend fun getUserEntity(chatId: Long): UserEntity {
+        return template.findById<UserEntity>(chatId.toString())
+            .awaitStrict()
+    }
+
     suspend fun stickerExists(
         entity: UserEntity,
         sticker: Sticker
@@ -43,9 +46,16 @@ class StickerDAO(
         return stickerPackContains || thisBotSticker
     }
 
-    suspend fun userRegistered(userId: Long): Boolean = template.exists(Query.query(Criteria.where("_id").`is`(userId.toString())), UserEntity::class.java).awaitStrict()
+    suspend fun userRegistered(userId: Long): Boolean =
+        template.exists(Query.query(Criteria.where("_id").`is`(userId.toString())), UserEntity::class.java)
+            .awaitStrict()
 
-    suspend fun saveUserPacks(userId: Long, normalStickerName: String, animatedStickerName: String, vidPackName: String) {
+    suspend fun saveUserPacks(
+        userId: Long,
+        normalStickerName: String,
+        animatedStickerName: String,
+        vidPackName: String
+    ) {
         return template.save(UserEntity(userId.toString(), normalStickerName, animatedStickerName, vidPackName))
             .awaitUnit()
     }
@@ -58,15 +68,11 @@ class StickerDAO(
             .awaitStrict()
     }
 
-    suspend fun getUserEntity(userId: Long): UserEntity {
-        return template.findById<UserEntity>(userId.toString())
-            .awaitStrict()
-    }
-
     suspend fun getAllUserIds(): List<Long> {
         return template.findAll(UserEntity::class.java)
             .map { it.userId.toLong() }
-            .await()
+            .collectList()
+            .awaitFirst()
     }
 
     suspend fun createSet(chatId: Long, packType: StickerPackType, packName: String) {
@@ -152,30 +158,11 @@ class StickerDAO(
             .awaitUnit()
     }
 
-    suspend fun countNormalAddedStickers(): Long {
-        return template.aggregate(
-            Aggregation.newAggregation(
-                Aggregation.unwind("normalPackSet"),
-                Aggregation.replaceRoot("normalPackSet"),
-                Aggregation.count().`as`("count")
-            ), USER_ENTITY_COLLECTION_NAME, BatchJobDAO.Count::class.java
-        ).awaitFirstOrElse { BatchJobDAO.Count(0) }.count
-    }
-
-    suspend fun countAnimatedAddedStickers(): Long {
-        return template.aggregate(
-            Aggregation.newAggregation(
-                Aggregation.unwind("animatedPackSet"),
-                Aggregation.replaceRoot("animatedPackSet"),
-                Aggregation.count().`as`("count")
-            ), USER_ENTITY_COLLECTION_NAME, BatchJobDAO.Count::class.java
-        ).awaitFirstOrElse { BatchJobDAO.Count(0) }.count
-    }
-
     private fun <T> Mono<T>.retryOnOptimisticLock(): Mono<T> {
-        return this.retryWhen(Retry.fixedDelay(3, Duration.ofMillis(500))
-            .filter { it is DataAccessException }
-            .doBeforeRetry { logger.info("Retrying on optimistic lock exception") }
+        return this.retryWhen(
+            Retry.fixedDelay(3, Duration.ofMillis(500))
+                .filter { it is DataAccessException }
+                .doBeforeRetry { logger.info("Retrying on optimistic lock exception") }
         )
     }
 
